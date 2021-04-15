@@ -38,10 +38,6 @@ class Performative:
     content:    str = None
 
 """
-Time: the moment the performative was created/received.(2)Channel: the medium used to exchange the performative.(3)Sender: the identi er of the proclet creating the performative.(4)Set  of  receivers: the identi ers of the proclets receiving the performative, i.e. alist of recipients.(5)Action: the type of the performative.(6)Content: the actual information that is being exchanged.
-"""
-
-"""
     Describing behaviour of Processes with Many-to-Many Interactions.
     Fahland (2019)
 
@@ -57,8 +53,16 @@ class Proclet:
 
     groups = defaultdict(ChainMap)
 
-    def __init__(self, id=None):
+    def __init__(self, *args, uid=None, group=None, state=0):
         self.uid = uid or uuid.uuid4()
+        self.group = group or set()
+        self.state = state
+        self.operations = list(args)
+
+    def __call__(self, state=0):
+        state = state or self.state
+        opern = self.operations[0]
+        yield from opern(state)
 
 class GroupTests(unittest.TestCase):
     """
@@ -70,8 +74,25 @@ class GroupTests(unittest.TestCase):
     """
     pass
 
-class ProcletTests(unittest.TestCase):
+class PerformativeTests(unittest.TestCase):
 
     def test_performative(self):
         perf = Performative()
         self.fail(perf)
+
+class ProcletTests(unittest.TestCase):
+
+    class InOut(Proclet):
+
+        def __init__(self, **kwargs):
+            super().__init__(self.go_in, self.go_out, **kwargs)
+
+        def go_in(self, state):
+            yield Performative()
+
+        def go_out(self, state):
+            yield Performative()
+
+    def test_proclet(self):
+        p = ProcletTests.InOut()
+        self.fail(list(p()))
