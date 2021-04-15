@@ -21,6 +21,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from dataclasses import field
 import enum
+import time
 import uuid
 
 import unittest
@@ -28,11 +29,11 @@ import unittest
 @dataclass
 class Performative:
 
-    uid:        uuid.UUID
-    channel:    uuid.UUID
-    sender:     uuid.UUID
-    group:      list[uuid.UUID]
-    time:       int = 0
+    ts:         int = field(default_factory=time.monotonic_ns)
+    uid:        uuid.UUID = field(default_factory=uuid.uuid4)
+    channel:    uuid.UUID = None
+    sender:     uuid.UUID = None
+    group:      list[uuid.UUID] = None
     action:     enum.Enum = None
     content:    str = None
 
@@ -72,5 +73,5 @@ class GroupTests(unittest.TestCase):
 class ProcletTests(unittest.TestCase):
 
     def test_performative(self):
-        perf = Performative(uid=uuid.uuid4(), channel=None, sender=None, group=None) 
+        perf = Performative()
         self.fail(perf)
