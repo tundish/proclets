@@ -16,53 +16,11 @@
 # You should have received a copy of the GNU General Public License
 # along with proclets.  If not, see <http://www.gnu.org/licenses/>.
 
-from collections import ChainMap
-from collections import defaultdict
-from dataclasses import dataclass
-from dataclasses import field
-import enum
-import time
-import uuid
-
 import unittest
 
-@dataclass
-class Performative:
+from proclets.performative import Performative
+from proclets.performative import Proclet
 
-    ts:         int = field(default_factory=time.monotonic_ns)
-    uid:        uuid.UUID = field(default_factory=uuid.uuid4)
-    channel:    uuid.UUID = None
-    sender:     uuid.UUID = None
-    group:      list[uuid.UUID] = None
-    action:     enum.Enum = None
-    content:    str = None
-
-"""
-    Describing behaviour of Processes with Many-to-Many Interactions.
-    Fahland (2019)
-
-"""
-class Proclet:
-    """
-    A Proclet instance is a callable object with a finite lifetime.
-
-    Proclets: A framework for lightweight interacting workflow processes.
-    Van der Aalst, Barthelmess, Ellis, Wainer (2001)
-
-    """
-
-    groups = defaultdict(ChainMap)
-
-    def __init__(self, *args, uid=None, group=None, state=0):
-        self.uid = uid or uuid.uuid4()
-        self.group = group or set()
-        self.state = state
-        self.operations = list(args)
-
-    def __call__(self, state=0):
-        state = state or self.state
-        opern = self.operations[0]
-        yield from opern(state)
 
 class GroupTests(unittest.TestCase):
     """
@@ -74,11 +32,13 @@ class GroupTests(unittest.TestCase):
     """
     pass
 
+
 class PerformativeTests(unittest.TestCase):
 
     def test_performative(self):
         perf = Performative()
         self.fail(perf)
+
 
 class ProcletTests(unittest.TestCase):
 
