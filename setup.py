@@ -32,6 +32,7 @@ setup(
     author_email="tundish@gigeconomy.org.uk",
     url="https://github.com/tundish/proclets",
     long_description=__doc__,
+    long_description_content_type="text/x-rst",
     classifiers=[
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3.7",
