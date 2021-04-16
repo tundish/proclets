@@ -32,20 +32,22 @@ class Product(enum.Enum):
     brush = enum.auto()
     cloth = enum.auto()
 
-@dataclass
+@dataclass(frozen=True)
 class Item:
 
     uid: uuid.UUID = field(default_factory=uuid.uuid4)
     product: Product = None
+    quantity: int = 0
 
 class Order(Proclet):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.products = Counter(args)
+        self.args = Counter(args)
+        self.items = set()
 
     @property
-    def flow(self):
+    def arcs(self):
         return {
             self.create: {self.split},
             self.split: {self.notify},
@@ -55,8 +57,8 @@ class Order(Proclet):
 
     def create(self, state):
         # Create one synchronous channel ?
-        print(self.products)
-        yield Performative()
+        self.items = {Item(p, q) for p, q in self.args.items()}
+        yield
 
     def split(self, state):
         # Create one Package proclet for each ordered Item.

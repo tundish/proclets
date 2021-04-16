@@ -21,6 +21,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from dataclasses import field
 import enum
+import functools
 import time
 import uuid
 
@@ -52,24 +53,39 @@ class Proclet:
     """
     A Proclet instance is a callable object with a finite lifetime.
 
-    Proclets: A framework for lightweight interacting workflow processes.
+    Proclets: A framework for lightweight interacting workarcs processes.
     Van der Aalst, Barthelmess, Ellis, Wainer (2001)
 
     """
 
     groups = defaultdict(ChainMap)
 
-    def __init__(self, *args, uid=None, group=None, state=0):
+    def __init__(
+        self, *args, uid=None, channels=None, group=None, marking=None
+    ):
         self.uid = uid or uuid.uuid4()
+        self.channels = channels or {}
         self.group = group or set()
-        self.state = state
+        if marking is None:
+            self.marking = {k: not(v) for k, v in self.places.items()}
+        else:
+            self.marking = marking
 
     def __call__(self, state=0):
-        state = state or self.state
-        opern = list(self.flow.keys())[state]
-        yield from opern(state)
+        for op in (k for k, v in self.marking.items() if v):
+            yield from op(state)
 
     @property
-    def flow(self):
+    def arcs(self):
         return {}
 
+    @functools.cached_property
+    def transitions(self):
+        return {
+            i: n + 1 if (n + 1) < len(self.arcs) else None
+            for n, i in enumerate(self.arcs)
+        }
+
+    @functools.cached_property
+    def places(self):
+        return dict(enumerate(self.arcs))
