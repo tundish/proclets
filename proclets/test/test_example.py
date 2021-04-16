@@ -27,6 +27,7 @@ from proclets.example import Product
 from proclets.performative import Performative
 from proclets.performative import Proclet
 
+
 class ExampleTests(unittest.TestCase):
 
     def test_dag(self):
