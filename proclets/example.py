@@ -17,18 +17,36 @@
 # along with proclets.  If not, see <http://www.gnu.org/licenses/>.
 
 import enum
+from dataclasses import dataclass
+from dataclasses import field
 import unittest
+import uuid
 
 from proclets.performative import Performative
 from proclets.performative import Proclet
 
 
+class Product(enum.Enum):
+    apple = enum.auto()
+    brush = enum.auto()
+    cloth = enum.auto()
+
+@dataclass
+class Item:
+
+    uid: uuid.UUID = field(default_factory=uuid.uuid4)
+    product: Product = None
+
 class Order(Proclet):
 
     def create(self, state):
+        # Create one synchronous channel
         yield Performative()
 
     def split(self, state):
+        # Create one Package proclet for each ordered Item.
+        # Declare them as a Channel Group
+        # Activate their initial transition
         yield Performative()
 
     def notify(self, state):
