@@ -49,7 +49,7 @@ class ExampleTests(unittest.TestCase):
         order = Order(*list(Product))
         self.assertEqual(3, len(order.args))
         self.assertFalse(order.items)
-        for n in range(4):
+        for n in range(16):
             with self.subTest(n=n):
                 rv = list(order())
                 self.assertTrue(order.items)
@@ -57,8 +57,10 @@ class ExampleTests(unittest.TestCase):
                     self.assertFalse(rv, rv)
                 else:
                     self.assertTrue(rv)
-                    print(order.pending)
+                    for p in order.pending.values():
+                        print(p, p.marking)
 
                 self.assertTrue(
                     all(isinstance(i, (Performative, Proclet)) for i in rv if i is not None)
                 )
+
