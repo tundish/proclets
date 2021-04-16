@@ -69,3 +69,8 @@ class Proclet:
         state = state or self.state
         opern = self.operations[0]
         yield from opern(state)
+
+    @property
+    def flow(self):
+        return {}
+

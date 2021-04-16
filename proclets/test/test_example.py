@@ -34,4 +34,5 @@ class ExampleTests(unittest.TestCase):
         }
 
     def test_simple(self):
-        print(self.proclets)
+        flow = self.proclets["order"].flow
+        self.assertEqual(4, len(flow), flow)

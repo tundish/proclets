@@ -39,6 +39,15 @@ class Item:
 
 class Order(Proclet):
 
+    @property
+    def flow(self):
+        return {
+            self.create: {self.split},
+            self.split: {self.notify},
+            self.notify: {self.bill},
+            self.bill: {},
+        }
+
     def create(self, state):
         # Create one synchronous channel
         yield Performative()
