@@ -33,12 +33,14 @@ class Product(enum.Enum):
     brush = enum.auto()
     cloth = enum.auto()
 
+
 @dataclass(frozen=True)
 class Item:
 
     uid: uuid.UUID = field(default_factory=uuid.uuid4)
     product: Product = None
     quantity: int = 0
+
 
 class Order(Proclet):
 
@@ -57,7 +59,6 @@ class Order(Proclet):
         }
 
     def create(self, **kwargs):
-        # Create one synchronous channel ?
         self.items = {Item(p, q) for p, q in self.args.items()}
         self.channels["down"] = Channel()
         yield
@@ -83,6 +84,7 @@ class Order(Proclet):
 
     def bill(self, **kwargs):
         yield Performative()
+
 
 class Package(Proclet): pass
 class Delivery(Proclet): pass

@@ -22,11 +22,12 @@ from dataclasses import dataclass
 from dataclasses import field
 import enum
 import functools
+import queue
 import time
 import uuid
 
 
-@dataclass
+@dataclass(order=True)
 class Performative:
 
     ts:         int = field(default_factory=time.monotonic_ns)
@@ -46,7 +47,8 @@ class Channel:
     Fahland (2019)
 
     """
-    pass
+    def __init__(self):
+        self.q = queue.PriorityQueue()
 
 
 class Proclet:
@@ -58,7 +60,6 @@ class Proclet:
 
     """
 
-    pending = {}
     groups = defaultdict(ChainMap)
 
     @staticmethod
@@ -80,31 +81,35 @@ class Proclet:
         self.group = group or set()
         self.arcs = dict(self.build_arcs(self.dag))
         self.marking = marking or {0}
+        self.pending = {self.uid: self}
 
     def __call__(self, **kwargs):
-        marking = set()
-        for fn in self.dag:
-            i_nodes = self.i_nodes[fn]
-            if i_nodes.issubset(self.marking):
-                results = []
-                while not results or any(
-                    i.uid in self.pending for i in filter(None, results)
-                ):
-                    results = list(fn(**kwargs))
+        for proc in list(self.pending.values()):
+            marking = set()
+            for fn in proc.dag:
+                i_nodes = proc.i_nodes[fn]
+                if i_nodes.issubset(proc.marking):
+                    results = []
+                    while not results or any(
+                        i.uid in self.pending for i in filter(None, results)
+                    ):
+                        results = list(fn(**kwargs))
 
-                for obj in results:
-                    if obj is None:
-                        # Transition complete
-                        self.marking -= i_nodes
-                        marking.update(self.o_nodes[fn])
-                        continue
-                    elif isinstance(obj, Proclet):
-                        yield obj
-                    elif isinstance(obj, Performative):
-                        # TODO: send message to channel
-                        yield obj
+                    for obj in results:
+                        if obj is None:
+                            # Transition complete
+                            proc.marking -= i_nodes
+                            marking.update(proc.o_nodes[fn])
+                            continue
+                        elif isinstance(obj, Proclet):
+                            self.pending[obj.uid] = obj
+                            yield obj
+                        elif isinstance(obj, Performative):
+                            # TODO: send message to channel
+                            obj.channel.q.put(obj)
+                            yield obj
 
-        self.marking = marking
+            proc.marking = marking
 
     @property
     def dag(self):

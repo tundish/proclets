@@ -56,6 +56,7 @@ class ExampleTests(unittest.TestCase):
                     self.assertFalse(rv, rv)
                 else:
                     self.assertTrue(rv)
+                    print(order.pending)
 
                 self.assertTrue(
                     all(isinstance(i, (Performative, Proclet)) for i in rv if i is not None)
