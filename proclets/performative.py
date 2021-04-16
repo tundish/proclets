@@ -58,6 +58,7 @@ class Proclet:
 
     """
 
+    pending = {}
     groups = defaultdict(ChainMap)
 
     @staticmethod
@@ -86,8 +87,9 @@ class Proclet:
             i_nodes = self.i_nodes[fn]
             if i_nodes.issubset(self.marking):
                 results = []
-                # TODO: Modify condition to check uid uniqueness
-                while not results or any(i.uid is None for i in filter(None, results)):
+                while not results or any(
+                    i.uid in self.pending for i in filter(None, results)
+                ):
                     results = list(fn(**kwargs))
 
                 for obj in results:
@@ -96,7 +98,10 @@ class Proclet:
                         self.marking -= i_nodes
                         marking.update(self.o_nodes[fn])
                         continue
-                    else:
+                    elif isinstance(obj, Proclet):
+                        yield obj
+                    elif isinstance(obj, Performative):
+                        # TODO: send message to channel
                         yield obj
 
         self.marking = marking
