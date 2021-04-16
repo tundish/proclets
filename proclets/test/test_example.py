@@ -24,6 +24,7 @@ from proclets.example import Package
 from proclets.example import Delivery
 from proclets.example import Back
 from proclets.example import Product
+from proclets.performative import Performative
 
 class ExampleTests(unittest.TestCase):
 
@@ -43,3 +44,6 @@ class ExampleTests(unittest.TestCase):
     def test_order(self):
         order = Order(*list(Product))
         self.assertEqual(3, len(order.products))
+        rv = list(order())
+        self.assertTrue(rv)
+        self.assertTrue(all(isinstance(i, Performative) for i in rv))

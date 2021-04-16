@@ -35,6 +35,7 @@ class GroupTests(unittest.TestCase):
 
 class PerformativeTests(unittest.TestCase):
 
+    @unittest.skip("Not yet")
     def test_performative(self):
         perf = Performative()
         self.fail(perf)
@@ -53,6 +54,7 @@ class ProcletTests(unittest.TestCase):
         def go_out(self, state):
             yield Performative()
 
+    @unittest.skip("Not yet")
     def test_proclet(self):
         # TODO: Russian roulette example?
         p = ProcletTests.InOut()

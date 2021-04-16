@@ -63,11 +63,10 @@ class Proclet:
         self.uid = uid or uuid.uuid4()
         self.group = group or set()
         self.state = state
-        self.operations = list(args)
 
     def __call__(self, state=0):
         state = state or self.state
-        opern = self.operations[0]
+        opern = list(self.flow.keys())[state]
         yield from opern(state)
 
     @property
