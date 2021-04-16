@@ -36,11 +36,18 @@ class Performative:
     action:     enum.Enum = None
     content:    str = None
 
-"""
+
+class Channel:
+    """
+    Information is only available locally, hence synchronization can only occur at a channel.
+
     Describing behaviour of Processes with Many-to-Many Interactions.
     Fahland (2019)
 
-"""
+    """
+    pass
+
+
 class Proclet:
     """
     A Proclet instance is a callable object with a finite lifetime.

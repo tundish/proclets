@@ -54,5 +54,6 @@ class ProcletTests(unittest.TestCase):
             yield Performative()
 
     def test_proclet(self):
+        # TODO: Russian roulette example?
         p = ProcletTests.InOut()
         self.fail(list(p()))
