@@ -25,6 +25,7 @@ from proclets.example import Delivery
 from proclets.example import Back
 from proclets.example import Product
 from proclets.performative import Performative
+from proclets.performative import Proclet
 
 class ExampleTests(unittest.TestCase):
 
@@ -57,5 +58,5 @@ class ExampleTests(unittest.TestCase):
                     self.assertTrue(rv)
 
                 self.assertTrue(
-                    all(isinstance(i, Performative) for i in rv if i is not None)
+                    all(isinstance(i, (Performative, Proclet)) for i in rv if i is not None)
                 )

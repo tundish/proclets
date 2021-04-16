@@ -23,6 +23,7 @@ from dataclasses import field
 import unittest
 import uuid
 
+from proclets.performative import Channel
 from proclets.performative import Performative
 from proclets.performative import Proclet
 
@@ -58,13 +59,24 @@ class Order(Proclet):
     def create(self, **kwargs):
         # Create one synchronous channel ?
         self.items = {Item(p, q) for p, q in self.args.items()}
+        self.channels["down"] = Channel()
         yield
 
     def split(self, **kwargs):
         # Create one Package proclet for each ordered Item.
-        # Declare them as a Channel Group
-        # Activate their initial transition
-        yield Performative()
+        # Declare them as a single Channel Group
+        self.group = {
+            item: Package(channels={"up": self.channels["down"]})
+            for item in self.items
+        }
+        for item, p in self.group.items():
+            yield p
+
+            # Activate the initial transition
+            yield Performative(
+                channel=p.channels["up"], sender=self.uid, group=[p.uid],
+                content=item
+            )
 
     def notify(self, **kwargs):
         yield Performative()

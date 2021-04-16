@@ -85,14 +85,20 @@ class Proclet:
         for fn in self.dag:
             i_nodes = self.i_nodes[fn]
             if i_nodes.issubset(self.marking):
-                for i in fn(**kwargs):
-                    if not i:
+                results = []
+                # TODO: Modify condition to check uid uniqueness
+                while not results or any(i.uid is None for i in filter(None, results)):
+                    results = list(fn(**kwargs))
+
+                for obj in results:
+                    if obj is None:
                         # Transition complete
                         self.marking -= i_nodes
                         marking.update(self.o_nodes[fn])
                         continue
                     else:
-                        yield i
+                        yield obj
+
         self.marking = marking
 
     @property
