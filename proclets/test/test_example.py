@@ -23,16 +23,23 @@ from proclets.example import Order
 from proclets.example import Package
 from proclets.example import Delivery
 from proclets.example import Back
+from proclets.example import Product
 
 class ExampleTests(unittest.TestCase):
 
-    def setUp(self):
-        self.proclets = {
-            i.__class__.__name__.lower(): i for i in (
-                Order(), Package(), Delivery(), Back()
-            )
-        }
-
-    def test_simple(self):
-        flow = self.proclets["order"].flow
+    def test_flow(self):
+        flow = Order().flow
         self.assertEqual(4, len(flow), flow)
+
+        flow = Package().flow
+        self.assertEqual(8, len(flow), flow)
+
+        flow = Delivery().flow
+        self.assertEqual(6, len(flow), flow)
+
+        flow = Back().flow
+        self.assertEqual(3, len(flow), flow)
+
+    def test_order(self):
+        order = Order(*list(Product))
+        self.assertEqual(3, len(order.products))

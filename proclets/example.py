@@ -17,6 +17,7 @@
 # along with proclets.  If not, see <http://www.gnu.org/licenses/>.
 
 import enum
+from collections import Counter
 from dataclasses import dataclass
 from dataclasses import field
 import unittest
@@ -39,6 +40,10 @@ class Item:
 
 class Order(Proclet):
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.products = Counter(args)
+
     @property
     def flow(self):
         return {
@@ -49,7 +54,8 @@ class Order(Proclet):
         }
 
     def create(self, state):
-        # Create one synchronous channel
+        # Create one synchronous channel ?
+        print(self.products)
         yield Performative()
 
     def split(self, state):
