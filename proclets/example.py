@@ -47,29 +47,29 @@ class Order(Proclet):
         self.items = set()
 
     @property
-    def arcs(self):
+    def dag(self):
         return {
-            self.create: {self.split},
-            self.split: {self.notify},
-            self.notify: {self.bill},
-            self.bill: {},
+            self.create: [self.split],
+            self.split: [self.notify],
+            self.notify: [self.bill],
+            self.bill: [],
         }
 
-    def create(self, state):
+    def create(self, **kwargs):
         # Create one synchronous channel ?
         self.items = {Item(p, q) for p, q in self.args.items()}
         yield
 
-    def split(self, state):
+    def split(self, **kwargs):
         # Create one Package proclet for each ordered Item.
         # Declare them as a Channel Group
         # Activate their initial transition
         yield Performative()
 
-    def notify(self, state):
+    def notify(self, **kwargs):
         yield Performative()
 
-    def bill(self, state):
+    def bill(self, **kwargs):
         yield Performative()
 
 class Package(Proclet): pass

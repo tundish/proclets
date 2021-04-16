@@ -28,30 +28,34 @@ from proclets.performative import Performative
 
 class ExampleTests(unittest.TestCase):
 
-    def test_arcs(self):
+    def test_dag(self):
+        dag = Order().dag
         arcs = Order().arcs
-        transitions = Order().transitions
-        print(transitions)
-        places = Order().places
-        print(places)
-        self.assertEqual(4, len(arcs), arcs)
+        i_nodes = Order().i_nodes
+        self.assertEqual(4, len(dag), dag)
 
-        arcs = Package().arcs
-        self.assertEqual(8, len(arcs), arcs)
+        dag = Package().dag
+        self.assertEqual(8, len(dag), dag)
 
-        arcs = Delivery().arcs
-        self.assertEqual(6, len(arcs), arcs)
+        dag = Delivery().dag
+        self.assertEqual(6, len(dag), dag)
 
-        arcs = Back().arcs
-        self.assertEqual(3, len(arcs), arcs)
+        dag = Back().dag
+        self.assertEqual(3, len(dag), dag)
 
     def test_order(self):
         order = Order(*list(Product))
         self.assertEqual(3, len(order.args))
         self.assertFalse(order.items)
-        rv = list(order())
-        self.assertTrue(rv)
-        self.assertTrue(
-            all(isinstance(i, Performative) for i in rv if i is not None)
-        )
-        self.assertTrue(order.items)
+        for n in range(4):
+            with self.subTest(n=n):
+                rv = list(order())
+                self.assertTrue(order.items)
+                if not n:
+                    self.assertFalse(rv, rv)
+                else:
+                    self.assertTrue(rv)
+
+                self.assertTrue(
+                    all(isinstance(i, Performative) for i in rv if i is not None)
+                )

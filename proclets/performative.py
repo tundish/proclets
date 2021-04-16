@@ -53,12 +53,23 @@ class Proclet:
     """
     A Proclet instance is a callable object with a finite lifetime.
 
-    Proclets: A framework for lightweight interacting workarcs processes.
+    Proclets: A framework for lightweight interacting workdag processes.
     Van der Aalst, Barthelmess, Ellis, Wainer (2001)
 
     """
 
     groups = defaultdict(ChainMap)
+
+    @staticmethod
+    def build_arcs(dag):
+        rv = defaultdict(set)
+        n = 0
+        for k, v in dag.items():
+            if not n:
+                yield (n, (None, k))
+            for i in v:
+                n += 1
+                yield n, (k, i)
 
     def __init__(
         self, *args, uid=None, channels=None, group=None, marking=None
@@ -66,26 +77,38 @@ class Proclet:
         self.uid = uid or uuid.uuid4()
         self.channels = channels or {}
         self.group = group or set()
-        if marking is None:
-            self.marking = {k: not(v) for k, v in self.places.items()}
-        else:
-            self.marking = marking
+        self.arcs = dict(self.build_arcs(self.dag))
+        self.marking = marking or {0}
 
-    def __call__(self, state=0):
-        for op in (k for k, v in self.marking.items() if v):
-            yield from op(state)
+    def __call__(self, **kwargs):
+        marking = set()
+        for fn in self.dag:
+            i_nodes = self.i_nodes[fn]
+            if i_nodes.issubset(self.marking):
+                for i in fn(**kwargs):
+                    if not i:
+                        # Transition complete
+                        self.marking -= i_nodes
+                        marking.update(self.o_nodes[fn])
+                        continue
+                    else:
+                        yield i
+        self.marking = marking
 
     @property
-    def arcs(self):
+    def dag(self):
         return {}
 
     @functools.cached_property
-    def transitions(self):
-        return {
-            i: n + 1 if (n + 1) < len(self.arcs) else None
-            for n, i in enumerate(self.arcs)
-        }
+    def i_nodes(self):
+        rv = defaultdict(set)
+        for p, (s, d) in self.arcs.items():
+            rv[d].add(p)
+        return rv
 
     @functools.cached_property
-    def places(self):
-        return dict(enumerate(self.arcs))
+    def o_nodes(self):
+        rv = defaultdict(set)
+        for p, (s, d) in self.arcs.items():
+            rv[s].add(p)
+        return rv
