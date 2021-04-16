@@ -102,28 +102,28 @@ class Package(Proclet):
         }
 
     def split(self, **kwargs):
-        pass
+        yield
 
     def load(self, **kwargs):
-        pass
+        yield
 
     def retry(self, **kwargs):
-        pass
+        yield
 
     def deliver(self, **kwargs):
-        pass
+        yield
 
     def undeliver(self, **kwargs):
-        pass
+        yield
 
     def return_(self, **kwargs):
-        pass
+        yield
 
     def bill(self, **kwargs):
-        pass
+        yield
 
     def finish(self, **kwargs):
-        pass
+        yield
 
 
 class Delivery(Proclet): pass

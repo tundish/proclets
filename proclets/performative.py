@@ -48,7 +48,7 @@ class Channel:
 
     """
     def __init__(self):
-        self.q = queue.PriorityQueue()
+        self.q = defaultdict(queue.PriorityQueue)
 
 
 class Proclet:
@@ -106,7 +106,7 @@ class Proclet:
                             yield obj
                         elif isinstance(obj, Performative):
                             # TODO: send message to channel
-                            obj.channel.q.put(obj)
+                            obj.channel.q[obj.uid].put(obj)
                             yield obj
 
             proc.marking = marking
