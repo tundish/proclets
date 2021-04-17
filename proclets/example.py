@@ -86,6 +86,45 @@ class Order(Proclet):
         yield Performative()
 
 
-class Package(Proclet): pass
+class Package(Proclet):
+
+    @property
+    def dag(self):
+        return {
+            self.split: [self.load],
+            self.load: [self.retry, self.deliver, self.undeliver],
+            self.retry: [self.load, self.finish],
+            self.deliver: [self.bill, self.finish],
+            self.undeliver: [self.bill, self.return_, self.finish],
+            self.return_: [self.bill],
+            self.bill: [self.bill],
+            self.finish: [],
+        }
+
+    def split(self, **kwargs):
+        yield
+
+    def load(self, **kwargs):
+        yield
+
+    def retry(self, **kwargs):
+        yield
+
+    def deliver(self, **kwargs):
+        yield
+
+    def undeliver(self, **kwargs):
+        yield
+
+    def return_(self, **kwargs):
+        yield
+
+    def bill(self, **kwargs):
+        yield
+
+    def finish(self, **kwargs):
+        yield
+
+
 class Delivery(Proclet): pass
 class Back(Proclet): pass
