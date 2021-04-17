@@ -28,6 +28,7 @@ import uuid
 
 from proclets.performative import Performative
 
+
 class Proclet:
     """
     A Proclet instance is a callable object with a finite lifetime.

@@ -18,6 +18,7 @@
 
 import unittest
 
+from proclets.performative import Channel
 from proclets.performative import Performative
 from proclets.proclet import Proclet
 
@@ -83,7 +84,18 @@ class Vehicle(Proclet):
 
 class ProcletTests(unittest.TestCase):
 
-    def test_proclet(self):
+    def test_initial_markings(self):
         c = Control()
+        self.assertEqual({0}, c.marking)
+        self.assertEqual((None, c.in_launch), c.arcs[0])
+        self.assertEqual({0}, c.i_nodes[c.in_launch])
+
         v = Vehicle()
+        self.assertEqual({0}, v.marking)
+        self.assertEqual((None, v.in_launch), v.arcs[0])
+        self.assertEqual({0}, v.i_nodes[v.in_launch])
+
+    def test_proclet(self):
+        c = Control(channels={"uplink": Channel()})
+        v = Vehicle(channels=c.channels)
         self.fail(list(c()))
