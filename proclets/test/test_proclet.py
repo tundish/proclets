@@ -140,3 +140,4 @@ class ProcletTests(unittest.TestCase):
             with self.subTest(n=n):
                 print(*list(filter(None, c())), sep="\n", file=sys.stderr)
                 print(*list(filter(None, v())), sep="\n", file=sys.stderr)
+                print(*list(channels["uplink"].store.values()), sep="\n", file=sys.stderr)

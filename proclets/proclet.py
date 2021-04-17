@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with proclets.  If not, see <http://www.gnu.org/licenses/>.
 
-from collections import ChainMap
 from collections import defaultdict
 from dataclasses import dataclass
 from dataclasses import field
@@ -37,8 +36,6 @@ class Proclet:
     Van der Aalst, Barthelmess, Ellis, Wainer (2001)
 
     """
-
-    groups = defaultdict(ChainMap)
 
     @staticmethod
     def build_arcs(dag):
@@ -67,6 +64,7 @@ class Proclet:
                 yield from proc(**kwargs)
                 continue
 
+            print(proc)
             marking = set()
             for fn in proc.dag:
                 i_nodes = proc.i_nodes[fn]
