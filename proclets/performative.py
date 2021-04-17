@@ -37,12 +37,13 @@ class Performative:
     sender:     uuid.UUID = None
     group:      list[uuid.UUID] = None
     action:     enum.Enum = None
-    content:    str = None
+    content:    object = None
 
 
 class Channel:
     """
-    Information is only available locally, hence synchronization can only occur at a channel.
+    Information is only available locally, hence synchronization can only
+    occur at a channel.
 
     Describing behaviour of Processes with Many-to-Many Interactions.
     Fahland (2019)

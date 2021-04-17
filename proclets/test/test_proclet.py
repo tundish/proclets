@@ -45,13 +45,13 @@ class Control(Proclet):
     def in_launch(self, **kwargs):
         yield Performative(
             channel=self.channels["uplink"], sender=self.uid, group=self.group,
-            action=Status.accepted
+            action=Status.activate, content=self.marking
         )
 
     def in_separation(self, **kwargs):
         yield Performative(
             channel=self.channels["uplink"], sender=self.uid, group=self.group,
-            action=Status.activate
+            action=Status.activate, content=self.marking
         )
 
     def in_recovery(self, **kwargs):
@@ -74,26 +74,36 @@ class Vehicle(Proclet):
         }
 
     def in_launch(self, **kwargs):
-        # Listen for signal
-        msg = list(self.channels["uplink"])
-        #yield Performative(
-        #    channel=p.channels["up"], sender=self.uid, group=[p.uid],
-        #    content=Status.activate
-        #)
+        if self.channels["uplink"].empty(self.uid):
+            yield Performative(sender=self.uid)
+            return
+
+        while not self.channels["uplink"].empty(self.uid):
+            p = self.channels["uplink"].get(self.uid)
+            if p.action == Status.activate:
+                yield Performative(
+                    channel=self.channels["uplink"],
+                    sender=self.uid, group=[p.uid],
+                    action=Status.accepted,
+                    content=self.marking
+                )
+                yield
 
     def in_separation(self, **kwargs):
-        self.group = {
-            item: Package(channels={"up": self.channels["down"]})
-            for item in self.items
-        }
-        for item, p in self.group.items():
-            yield p
+        if self.channels["uplink"].empty(self.uid):
+            yield Performative(sender=self.uid)
+            return
 
-            # Activate the initial transition
-            yield Performative(
-                channel=p.channels["up"], sender=self.uid, group=[p.uid],
-                content=item
-            )
+        while not self.channels["uplink"].empty(self.uid):
+            p = self.channels["uplink"].get(self.uid)
+            if p.action == Status.activate:
+                yield Performative(
+                    channel=self.channels["uplink"],
+                    sender=self.uid, group=[p.uid],
+                    action=Status.accepted,
+                    content=self.marking
+                )
+                yield
 
     def in_orbit(self, **kwargs):
         yield Performative()
@@ -121,8 +131,8 @@ class ProcletTests(unittest.TestCase):
     def test_flow(self):
         channels = {"uplink": Channel(), "beacon": Channel()}
         v = Vehicle(channels=dict(channels, bus=Channel()))
-        c = Control(channels=channels, group={v})
+        c = Control(channels=channels, group={v.uid: v})
         for n in range(12):
             with self.subTest(n=n):
-                print(*list(c()), sep="\n", file=sys.stderr)
-                print(*list(v()), sep="\n", file=sys.stderr)
+                print(*list(filter(None, c())), sep="\n", file=sys.stderr)
+                print(*list(filter(None, v())), sep="\n", file=sys.stderr)

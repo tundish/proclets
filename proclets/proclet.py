@@ -87,9 +87,12 @@ class Proclet:
                             self.pending[obj.uid] = obj
                             yield obj
                         elif isinstance(obj, Performative):
-                            # TODO: send message to channel
-                            obj.channel.q[obj.uid].put(obj)
-                            yield obj
+                            try:
+                                obj.channel.put(obj)
+                            except (AttributeError,):
+                                pass
+                            finally:
+                                yield obj
 
             proc.marking = marking
 

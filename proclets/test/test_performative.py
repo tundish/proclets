@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with proclets.  If not, see <http://www.gnu.org/licenses/>.
 
+import queue
 import unittest
 
 from proclets.performative import Channel
@@ -36,6 +37,7 @@ class ChannelTests(unittest.TestCase):
         c = Channel()
         self.assertTrue(c.empty(0))
         self.assertFalse(c.full(0))
+        self.assertRaises(queue.Empty, c.get, 0)
 
     def test_put_plain_object(self):
         c = Channel()
