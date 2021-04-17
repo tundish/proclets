@@ -79,7 +79,7 @@ class Vehicle(Proclet):
 
     def in_launch(self, **kwargs):
         if self.channels["uplink"].empty(self.uid):
-            yield Performative(sender=self.uid)
+            yield Performative(sender=self.uid, content=self.marking)
             return
 
         while not self.channels["uplink"].empty(self.uid):
@@ -92,10 +92,12 @@ class Vehicle(Proclet):
                     content=self.marking
                 )
                 yield
+        else:
+            yield Performative(sender=self.uid, content=self.marking)
 
     def in_separation(self, **kwargs):
         if self.channels["uplink"].empty(self.uid):
-            yield Performative(sender=self.uid)
+            yield Performative(sender=self.uid, content=self.marking)
             return
 
         while not self.channels["uplink"].empty(self.uid):
@@ -108,6 +110,9 @@ class Vehicle(Proclet):
                     content=self.marking
                 )
                 yield
+        else:
+            yield Performative(sender=self.uid, content=self.marking)
+
 
     def in_orbit(self, **kwargs):
         yield Performative()
@@ -140,4 +145,3 @@ class ProcletTests(unittest.TestCase):
             with self.subTest(n=n):
                 print(*list(filter(None, c())), sep="\n", file=sys.stderr)
                 print(*list(filter(None, v())), sep="\n", file=sys.stderr)
-                print(*list(channels["uplink"].store.values()), sep="\n", file=sys.stderr)

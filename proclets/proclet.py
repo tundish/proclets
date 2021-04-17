@@ -64,7 +64,6 @@ class Proclet:
                 yield from proc(**kwargs)
                 continue
 
-            print(proc)
             marking = set()
             for fn in proc.dag:
                 i_nodes = proc.i_nodes[fn]
