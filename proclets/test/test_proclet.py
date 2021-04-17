@@ -47,6 +47,10 @@ class Control(Proclet):
             channel=self.channels["uplink"], sender=self.uid, group=self.group,
             action=Status.activate, content=self.marking
         )
+        while not self.channels["uplink"].empty(self.uid):
+            p = self.channels["uplink"].get(self.uid)
+            if p.action == Status.accepted:
+                yield
 
     def in_separation(self, **kwargs):
         yield Performative(

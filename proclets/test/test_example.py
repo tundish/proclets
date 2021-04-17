@@ -25,7 +25,7 @@ from proclets.example import Delivery
 from proclets.example import Back
 from proclets.example import Product
 from proclets.performative import Performative
-from proclets.performative import Proclet
+from proclets.proclet import Proclet
 
 
 class ExampleTests(unittest.TestCase):

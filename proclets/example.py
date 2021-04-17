@@ -25,7 +25,7 @@ import uuid
 
 from proclets.performative import Channel
 from proclets.performative import Performative
-from proclets.performative import Proclet
+from proclets.proclet import Proclet
 
 
 class Product(enum.Enum):
