@@ -16,8 +16,9 @@
 # You should have received a copy of the GNU General Public License
 # along with proclets.  If not, see <http://www.gnu.org/licenses/>.
 
-from collections import ChainMap
+from collections import Counter
 from collections import defaultdict
+from collections import deque
 from dataclasses import dataclass
 from dataclasses import field
 import enum
@@ -48,4 +49,26 @@ class Channel:
 
     """
     def __init__(self):
-        self.q = defaultdict(queue.PriorityQueue)
+        self.store = defaultdict(deque)
+        self.ready = Counter()
+
+    def qsize(self, uid):
+        return self.ready[uid]
+
+    def empty(self, uid):
+        return bool(self.ready[uid])
+
+    def full(self, uid):
+        return False
+
+    def put(self, item: Performative):
+        for uid in item.group:
+            self.store[uid].appendleft(item)
+            self.ready[uid] += 1
+
+    def get(self, uid):
+        if not self.ready[uid]:
+            raise queue.Empty
+        self.ready[uid] -= 1
+        item = self.store[uid][self.ready[uid]]
+        return item

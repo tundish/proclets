@@ -17,6 +17,7 @@
 # along with proclets.  If not, see <http://www.gnu.org/licenses/>.
 
 import enum
+import sys
 import unittest
 
 from proclets.performative import Channel
@@ -44,7 +45,7 @@ class Control(Proclet):
     def in_launch(self, **kwargs):
         yield Performative(
             channel=self.channels["uplink"], sender=self.uid, group=self.group,
-            action=Status.activate
+            action=Status.accepted
         )
 
     def in_separation(self, **kwargs):
@@ -73,10 +74,12 @@ class Vehicle(Proclet):
         }
 
     def in_launch(self, **kwargs):
-        yield Performative(
-            channel=p.channels["up"], sender=self.uid, group=[p.uid],
-            content=Status.activate
-        )
+        # Listen for signal
+        msg = list(self.channels["uplink"])
+        #yield Performative(
+        #    channel=p.channels["up"], sender=self.uid, group=[p.uid],
+        #    content=Status.activate
+        #)
 
     def in_separation(self, **kwargs):
         self.group = {
@@ -119,5 +122,7 @@ class ProcletTests(unittest.TestCase):
         channels = {"uplink": Channel(), "beacon": Channel()}
         v = Vehicle(channels=dict(channels, bus=Channel()))
         c = Control(channels=channels, group={v})
-        print(list(c()))
-        print(list(c()))
+        for n in range(12):
+            with self.subTest(n=n):
+                print(*list(c()), sep="\n", file=sys.stderr)
+                print(*list(v()), sep="\n", file=sys.stderr)
