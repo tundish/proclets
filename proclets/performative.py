@@ -85,6 +85,10 @@ class Proclet:
 
     def __call__(self, **kwargs):
         for proc in list(self.pending.values()):
+            if proc is not self:
+                yield from proc(**kwargs)
+                continue
+
             marking = set()
             for fn in proc.dag:
                 i_nodes = proc.i_nodes[fn]
