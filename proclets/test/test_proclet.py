@@ -16,11 +16,19 @@
 # You should have received a copy of the GNU General Public License
 # along with proclets.  If not, see <http://www.gnu.org/licenses/>.
 
+import enum
 import unittest
 
 from proclets.performative import Channel
 from proclets.performative import Performative
 from proclets.proclet import Proclet
+
+
+class Status(enum.Enum):
+
+    activate = enum.auto()
+    accepted = enum.auto()
+    declined = enum.auto()
 
 
 class Control(Proclet):
@@ -34,13 +42,22 @@ class Control(Proclet):
         }
 
     def in_launch(self, **kwargs):
-        yield Performative()
+        yield Performative(
+            channel=self.channels["uplink"], sender=self.uid, group=self.group,
+            action=Status.activate
+        )
 
     def in_separation(self, **kwargs):
-        yield Performative()
+        yield Performative(
+            channel=self.channels["uplink"], sender=self.uid, group=self.group,
+            action=Status.activate
+        )
 
     def in_recovery(self, **kwargs):
-        yield Performative()
+        yield Performative(
+            channel=self.channels["uplink"], sender=self.uid, group=self.group,
+            action=Status.activate
+        )
 
 
 class Vehicle(Proclet):
@@ -56,7 +73,10 @@ class Vehicle(Proclet):
         }
 
     def in_launch(self, **kwargs):
-        yield Performative()
+        yield Performative(
+            channel=p.channels["up"], sender=self.uid, group=[p.uid],
+            content=Status.activate
+        )
 
     def in_separation(self, **kwargs):
         self.group = {
@@ -95,7 +115,9 @@ class ProcletTests(unittest.TestCase):
         self.assertEqual((None, v.in_launch), v.arcs[0])
         self.assertEqual({0}, v.i_nodes[v.in_launch])
 
-    def test_proclet(self):
-        c = Control(channels={"uplink": Channel()})
-        v = Vehicle(channels=c.channels)
-        self.fail(list(c()))
+    def test_flow(self):
+        channels = {"uplink": Channel(), "beacon": Channel()}
+        v = Vehicle(channels=dict(channels, bus=Channel()))
+        c = Control(channels=channels, group={v})
+        print(list(c()))
+        print(list(c()))
