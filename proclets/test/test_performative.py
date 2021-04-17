@@ -61,36 +61,3 @@ class ProcletTests(unittest.TestCase):
 
         def in_recovery(self, **kwargs):
             yield Performative()
-
-    class Vehicle(Proclet):
-
-        @property
-        def dag(self):
-            return {
-                self.in_launch: [self.in_separation],
-                self.in_separation: [self.in_orbit, self.in_reentry],
-                self.in_orbit: [self.in_orbit, self.in_reentry],
-                self.in_reentry: [self.in_recovery],
-                self.in_recovery: [],
-            }
-
-        def in_launch(self, **kwargs):
-            yield Performative()
-
-        def in_separation(self, **kwargs):
-            yield Performative()
-
-        def in_orbit(self, **kwargs):
-            yield Performative()
-
-        def in_reentry(self, **kwargs):
-            yield Performative()
-
-        def in_recovery(self, **kwargs):
-            yield Performative()
-
-    @unittest.skip("Not yet")
-    def test_proclet(self):
-        # TODO: Russian roulette example?
-        p = ProcletTests.InOut()
-        self.fail(list(p()))
