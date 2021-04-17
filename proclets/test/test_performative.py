@@ -18,19 +18,8 @@
 
 import unittest
 
+from proclets.performative import Channel
 from proclets.performative import Performative
-from proclets.performative import Proclet
-
-
-class GroupTests(unittest.TestCase):
-    """
-    A performative has by definition one sender, but can have multiple recipients.
-    The sender is always represented by a procid, i.e. the identifer of a proclet instance.
-    However, the list of recipients can be a mixture of procid's and classid's, i.e. one can send performatives
-    to both proclet instances and proclet classes.
-    A performative sent to a proclet class is received by all proclet instances of that class
-    """
-    pass
 
 
 class PerformativeTests(unittest.TestCase):
@@ -41,23 +30,54 @@ class PerformativeTests(unittest.TestCase):
         self.fail(perf)
 
 
-class ProcletTests(unittest.TestCase):
+class ChannelTests(unittest.TestCase):
 
-    class Control(Proclet):
+    def test_api(self):
+        c = Channel()
+        self.assertTrue(c.empty(0))
+        self.assertFalse(c.full(0))
 
-        @property
-        def dag(self):
-            return {
-                self.in_launch: [self.in_separation],
-                self.in_separation: [self.in_recovery],
-                self.in_recovery: [],
-            }
+    def test_put_plain_object(self):
+        c = Channel()
+        self.assertRaises(AttributeError, c.put, 0)
 
-        def in_launch(self, **kwargs):
-            yield Performative()
+    def test_put_empty_group(self):
+        c = Channel()
+        p = Performative(group=[])
+        self.assertEqual(0, c.put(p))
 
-        def in_separation(self, **kwargs):
-            yield Performative()
+    def test_put_one_in_group(self):
+        c = Channel()
+        p = Performative(group=[0])
+        self.assertEqual(1, c.put(p))
+        self.assertFalse(c.empty(0))
 
-        def in_recovery(self, **kwargs):
-            yield Performative()
+    def test_put_many(self):
+        c = Channel()
+        group = list(range(6))
+        p = Performative(group=group)
+        self.assertEqual(6, c.put(p))
+        for i in group:
+            with self.subTest(i=i):
+                self.assertFalse(c.empty(i))
+
+    def test_get_one(self):
+        c = Channel()
+        p = Performative(group=[0])
+        self.assertEqual(1, c.put(p))
+        self.assertFalse(c.empty(0))
+        rv = c.get(0)
+        self.assertEqual(p, rv)
+        self.assertTrue(c.empty(0))
+
+    def test_get_many(self):
+        c = Channel()
+        data = [Performative(group=[0])] * 6
+        for p in data:
+            c.put(p)
+
+        for n, p in enumerate(data):
+            with self.subTest(n=n, p=p):
+                self.assertFalse(c.empty(0))
+                self.assertEqual(p, c.get(0))
+        self.assertTrue(c.empty(0))

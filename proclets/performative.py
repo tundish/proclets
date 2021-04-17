@@ -56,15 +56,18 @@ class Channel:
         return self.ready[uid]
 
     def empty(self, uid):
-        return bool(self.ready[uid])
+        return self.ready[uid] == 0
 
     def full(self, uid):
         return False
 
     def put(self, item: Performative):
+        n = 0
         for uid in item.group:
-            self.store[uid].appendleft(item)
             self.ready[uid] += 1
+            self.store[uid].appendleft(item)
+            n += 1
+        return n
 
     def get(self, uid):
         if not self.ready[uid]:
