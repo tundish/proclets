@@ -43,15 +43,50 @@ class PerformativeTests(unittest.TestCase):
 
 class ProcletTests(unittest.TestCase):
 
-    class InOut(Proclet):
+    class Control(Proclet):
 
-        def __init__(self, **kwargs):
-            super().__init__(self.go_in, self.go_out, **kwargs)
+        @property
+        def dag(self):
+            return {
+                self.in_launch: [self.in_separation],
+                self.in_separation: [self.in_recovery],
+                self.in_recovery: [],
+            }
 
-        def go_in(self, state):
+        def in_launch(self, **kwargs):
             yield Performative()
 
-        def go_out(self, state):
+        def in_separation(self, **kwargs):
+            yield Performative()
+
+        def in_recovery(self, **kwargs):
+            yield Performative()
+
+    class Vehicle(Proclet):
+
+        @property
+        def dag(self):
+            return {
+                self.in_launch: [self.in_separation],
+                self.in_separation: [self.in_orbit, self.in_reentry],
+                self.in_orbit: [self.in_orbit, self.in_reentry],
+                self.in_reentry: [self.in_recovery],
+                self.in_recovery: [],
+            }
+
+        def in_launch(self, **kwargs):
+            yield Performative()
+
+        def in_separation(self, **kwargs):
+            yield Performative()
+
+        def in_orbit(self, **kwargs):
+            yield Performative()
+
+        def in_reentry(self, **kwargs):
+            yield Performative()
+
+        def in_recovery(self, **kwargs):
             yield Performative()
 
     @unittest.skip("Not yet")
