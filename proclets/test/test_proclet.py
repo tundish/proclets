@@ -21,8 +21,8 @@ import sys
 import queue
 import unittest
 
-from proclets.performative import Channel
-from proclets.performative import Performative as M
+from proclets.channel import Channel
+from proclets.performative import Performative as P
 from proclets.proclet import Proclet
 
 
@@ -45,7 +45,7 @@ class Control(Proclet):
         }
 
     def in_launch(self, **kwargs):
-        yield M(
+        yield P(
             channel=self.channels["uplink"], sender=self.uid, group=self.group,
             action=Status.activate, content=self.marking
         )
@@ -55,13 +55,13 @@ class Control(Proclet):
                 yield
 
     def in_separation(self, **kwargs):
-        yield M(
+        yield P(
             channel=self.channels["uplink"], sender=self.uid, group=self.group,
             action=Status.activate, content=self.marking
         )
 
     def in_recovery(self, **kwargs):
-        yield M(
+        yield P(
             channel=self.channels["uplink"], sender=self.uid, group=self.group,
             action=Status.activate
         )
@@ -90,38 +90,23 @@ class Vehicle(Proclet):
         except queue.Empty:
             return
 
-        if self.channels["uplink"].empty(self.uid):
-            yield M(sender=self.uid, content=self.marking)
-            return
-
-        while not self.channels["uplink"].empty(self.uid):
-            m = self.channels["uplink"].get(self.uid)
-            if m.action == Status.activate:
-                yield M(
-                    channel=self.channels["uplink"],
-                    sender=self.uid, group=[p.uid],
-                    action=Status.accepted,
-                    content=self.marking
-                )
-                yield M(
-                    channel=self.channels["uplink"],
-                    sender=self.uid, group=[p.uid],
-                    action=Status.complete,
-                    content=self.marking
-                )
-                return
-        else:
-            yield M(sender=self.uid, content=self.marking)
+        if response:
+            yield P(
+                channel=self.channels["uplink"],
+                sender=self.uid, group=response[0].group,
+                action=Status.complete,
+                content=self.marking
+            )
 
     def in_separation(self, **kwargs):
         if self.channels["uplink"].empty(self.uid):
-            yield M(sender=self.uid, content=self.marking)
+            yield P(sender=self.uid, content=self.marking)
             return
 
         while not self.channels["uplink"].empty(self.uid):
             m = self.channels["uplink"].get(self.uid)
             if m.action == Status.activate:
-                yield M(
+                yield P(
                     channel=self.channels["uplink"],
                     sender=self.uid, group=[p.uid],
                     action=Status.accepted,
@@ -129,17 +114,17 @@ class Vehicle(Proclet):
                 )
                 yield
         else:
-            yield M(sender=self.uid, content=self.marking)
+            yield P(sender=self.uid, content=self.marking)
 
 
     def in_orbit(self, **kwargs):
-        yield M()
+        yield P()
 
     def in_reentry(self, **kwargs):
-        yield M()
+        yield P()
 
     def in_recovery(self, **kwargs):
-        yield M()
+        yield P()
 
 
 class ProcletTests(unittest.TestCase):
