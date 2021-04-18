@@ -22,7 +22,6 @@ import queue
 import unittest
 
 from proclets.channel import Channel
-from proclets.performative import Performative as M
 from proclets.proclet import Proclet
 
 
@@ -64,10 +63,7 @@ class Control(Proclet):
         yield from self.uplink.respond(self, {Status.accepted: Status.received, Status.complete: None})
 
     def in_recovery(self, **kwargs):
-        yield M(
-            channel=self.channels["uplink"], sender=self.uid, group=self.group,
-            action=Status.activate
-        )
+        yield None
 
 
 class Vehicle(Proclet):
@@ -93,7 +89,7 @@ class Vehicle(Proclet):
 
         yield from self.uplink.send(
             sender=self.uid, group=self.group,
-            action=Status.complete,
+            action=Status.complete, content=self.marking
         )
         yield None
 
@@ -101,6 +97,7 @@ class Vehicle(Proclet):
         yield from self.uplink.respond(self, {Status.activate: Status.accepted})
 
         # Transition here.
+        yield Vehicle(channels=self.channels, marking=self.marking.copy())
 
         yield from self.uplink.send(
             sender=self.uid, group=self.group,
@@ -109,13 +106,13 @@ class Vehicle(Proclet):
         yield None
 
     def in_orbit(self, **kwargs):
-        yield M()
+        yield None
 
     def in_reentry(self, **kwargs):
-        yield M()
+        yield None
 
     def in_recovery(self, **kwargs):
-        yield M()
+        yield None
 
 
 class ProcletTests(unittest.TestCase):
@@ -143,7 +140,7 @@ class ProcletTests(unittest.TestCase):
                 v_flow = list(v())
                 self.assertTrue(c.marking)
                 self.assertTrue(v.marking)
-                self.assertFalse(any(i.content is None for i in c_flow))
-                self.assertFalse(any(i.content is None for i in v_flow))
+                self.assertFalse(any(i.content is None for i in c_flow if not isinstance(i, Proclet)))
+                self.assertFalse(any(i.content is None for i in v_flow if not isinstance(i, Proclet)))
                 print(*c_flow, sep="\n", file=sys.stderr)
                 print(*v_flow, sep="\n", file=sys.stderr)
