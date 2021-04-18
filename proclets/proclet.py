@@ -84,6 +84,10 @@ class Proclet:
     def dag(self):
         return {}
 
+    @property
+    def activated(self):
+        return {self.arcs[i][1] for i in self.marking}
+
     @functools.cached_property
     def i_nodes(self):
         rv = defaultdict(set)

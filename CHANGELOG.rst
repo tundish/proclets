@@ -6,7 +6,12 @@
 Change Log
 ::::::::::
 
-0.1.0
+0.3.0
+=====
+
+* Add `activated` property to Proclet.
+
+0.2.0
 =====
 
 * Channel API fairly well defined now.

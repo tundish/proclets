@@ -138,6 +138,8 @@ class ProcletTests(unittest.TestCase):
         v = Vehicle(channels=dict(channels, bus=Channel()))
         c = Control(channels=channels, group={v.uid: v})
         v.group = {c.uid: c}
+        self.assertIn(c.in_launch, c.activated)
+        self.assertIn(v.in_launch, v.activated)
 
         for n in range(12):
             with self.subTest(n=n):
@@ -149,3 +151,6 @@ class ProcletTests(unittest.TestCase):
                 self.assertFalse(any(i.content is None for i in v_flow if not isinstance(i, Proclet)))
                 print(*c_flow, sep="\n", file=sys.stderr)
                 print(*v_flow, sep="\n", file=sys.stderr)
+            if n == 0:
+                self.assertIn(c.in_separation, c.activated)
+                self.assertIn(v.in_separation, v.activated)
