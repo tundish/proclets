@@ -30,7 +30,7 @@ class Proclet:
     """
     A Proclet instance is a callable object with a finite lifetime.
 
-    Proclets: A framework for lightweight interacting workdag processes.
+    Proclets: A framework for lightweight interacting workflow processes.
     Van der Aalst, Barthelmess, Ellis, Wainer (2001)
 
     """

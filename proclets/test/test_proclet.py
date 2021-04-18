@@ -57,10 +57,11 @@ class Control(Proclet):
         yield from self.uplink.respond(self, {Status.accepted: Status.received, Status.complete: None})
 
     def in_separation(self, **kwargs):
-        yield M(
-            channel=self.channels["uplink"], sender=self.uid, group=self.group,
+        yield from self.uplink.send(
+            sender=self.uid, group=self.group,
             action=Status.activate, content=self.marking
         )
+        yield from self.uplink.respond(self, {Status.accepted: Status.received, Status.complete: None})
 
     def in_recovery(self, **kwargs):
         yield M(
@@ -92,7 +93,7 @@ class Vehicle(Proclet):
 
         yield from self.uplink.send(
             sender=self.uid, group=self.group,
-            action=Status.complete, content=self.marking
+            action=Status.complete,
         )
         yield None
 
@@ -142,5 +143,7 @@ class ProcletTests(unittest.TestCase):
                 v_flow = list(v())
                 self.assertTrue(c.marking)
                 self.assertTrue(v.marking)
-                print(*list(filter(None, c())), sep="\n", file=sys.stderr)
-                print(*list(filter(None, v())), sep="\n", file=sys.stderr)
+                self.assertFalse(any(i.content is None for i in c_flow))
+                self.assertFalse(any(i.content is None for i in v_flow))
+                print(*c_flow, sep="\n", file=sys.stderr)
+                print(*v_flow, sep="\n", file=sys.stderr)
