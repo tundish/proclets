@@ -39,7 +39,7 @@ class Control(Proclet):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.uplink = self.channels["uplink"]
+        self.uplink = self.channels.get("uplink")
 
     @property
     def dag(self):
@@ -73,7 +73,7 @@ class Vehicle(Proclet):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.uplink = self.channels["uplink"]
+        self.uplink = self.channels.get("uplink")
 
     @property
     def dag(self):
@@ -97,23 +97,15 @@ class Vehicle(Proclet):
         yield None
 
     def in_separation(self, **kwargs):
-        if self.channels["uplink"].empty(self.uid):
-            yield M(sender=self.uid, content=self.marking)
-            return
+        yield from self.uplink.respond(self, {Status.activate: Status.accepted})
 
-        while not self.channels["uplink"].empty(self.uid):
-            m = self.channels["uplink"].get(self.uid)
-            if m.action == Status.activate:
-                yield M(
-                    channel=self.channels["uplink"],
-                    sender=self.uid, group=[p.uid],
-                    action=Status.accepted,
-                    content=self.marking
-                )
-                yield
-        else:
-            yield M(sender=self.uid, content=self.marking)
+        # Transition here.
 
+        yield from self.uplink.send(
+            sender=self.uid, group=self.group,
+            action=Status.complete, content=self.marking
+        )
+        yield None
 
     def in_orbit(self, **kwargs):
         yield M()

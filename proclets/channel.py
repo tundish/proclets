@@ -79,16 +79,15 @@ class Channel:
         for i in range(sent):
             yield item
 
-    def respond(self, p: Proclet, actions: dict, content: dict=None):
+    def respond(self, p: Proclet, actions: dict, contents: dict=None):
         while not self.empty(p.uid):
             m = self.get(p.uid)
             action = actions.get(m.action)
-            content = content and content.get(m.action) or p.marking
+            content = contents and contents.get(m.action) or p.marking
             if action:
-                yield self.send(
+                yield from self.send(
                     sender=p.uid, group=[m.sender],
                     action=action, content=content
                 )
             elif m.action in actions:
-                print("Terminates.")
                 yield None

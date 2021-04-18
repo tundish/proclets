@@ -58,6 +58,7 @@ class Proclet:
 
     def __call__(self, **kwargs):
         for proc in list(self.pending.values()):
+            print(proc)
             if proc is not self:
                 yield from proc(**kwargs)
                 continue
@@ -66,28 +67,19 @@ class Proclet:
             for fn in proc.dag:
                 i_nodes = proc.i_nodes[fn]
                 if i_nodes.issubset(proc.marking):
-                    results = []
-                    while not results or any(
-                        i.uid in self.pending for i in filter(None, results)  # ?
-                    ):
-                        print(fn)
-                        results = list(fn(**kwargs))
-                        print("Why? ", results)
-
-                    for obj in results:
+                    for obj in fn(**kwargs):
                         if obj is None:
                             # Transition complete
                             proc.marking -= i_nodes
                             marking.update(proc.o_nodes[fn])
                             print(marking)
-                            continue
                         elif isinstance(obj, Proclet):
                             self.pending[obj.uid] = obj
                             yield obj
                         else:
                             yield obj
 
-            proc.marking = marking
+            proc.marking = marking or proc.marking
 
     @property
     def dag(self):
