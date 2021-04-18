@@ -55,9 +55,13 @@ class Channel:
 
     def put(self, item: Performative):
         n = 0
+        if not item.group:
+            return
+
         for uid in item.group:
             self.ready[uid] += 1
             self.store[uid].appendleft(item)
+            print(item)
             n += 1
         return n
 
@@ -68,16 +72,23 @@ class Channel:
         item = self.store[uid][self.ready[uid]]
         return item
 
+    def send(self, **kwargs):
+        kwargs["channel"] = kwargs.get("channel", self)
+        item = Performative(**kwargs)
+        sent = self.put(item)
+        for i in range(sent):
+            yield item
+
     def respond(self, p: Proclet, actions: dict, content: dict=None):
         while not self.empty(p.uid):
             m = self.get(p.uid)
             action = actions.get(m.action)
             content = content and content.get(m.action) or p.marking
             if action:
-                yield Performative(
-                    channel=self,
+                yield self.send(
                     sender=p.uid, group=[m.sender],
-                    action=action,
-                    content=content
+                    action=action, content=content
                 )
-         
+            elif m.action in actions:
+                print("Terminates.")
+                yield None

@@ -66,16 +66,13 @@ class Proclet:
             for fn in proc.dag:
                 i_nodes = proc.i_nodes[fn]
                 if i_nodes.issubset(proc.marking):
-                    n = 1
                     results = []
-                    #while not results or any(
-                    #    i.uid in self.pending for i in filter(None, results)  # ?
-                    #):
-                    while not results and n < 12:
-                        n += 1
+                    while not results or any(
+                        i.uid in self.pending for i in filter(None, results)  # ?
+                    ):
                         print(fn)
                         results = list(fn(**kwargs))
-                        print(results)
+                        print("Why? ", results)
 
                     for obj in results:
                         if obj is None:

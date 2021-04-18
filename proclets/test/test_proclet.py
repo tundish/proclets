@@ -31,10 +31,15 @@ class Status(enum.Enum):
     activate = enum.auto()
     accepted = enum.auto()
     declined = enum.auto()
+    received = enum.auto()
     complete = enum.auto()
 
 
 class Control(Proclet):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.uplink = self.channels["uplink"]
 
     @property
     def dag(self):
@@ -45,14 +50,11 @@ class Control(Proclet):
         }
 
     def in_launch(self, **kwargs):
-        yield M(
-            channel=self.channels["uplink"], sender=self.uid, group=self.group,
+        yield from self.uplink.send(
+            sender=self.uid, group=self.group,
             action=Status.activate, content=self.marking
         )
-        while not self.channels["uplink"].empty(self.uid):
-            m = self.channels["uplink"].get(self.uid)
-            if m.action == Status.accepted:
-                yield
+        yield from self.uplink.respond(self, {Status.accepted: Status.received, Status.complete: None})
 
     def in_separation(self, **kwargs):
         yield M(
@@ -84,20 +86,15 @@ class Vehicle(Proclet):
         }
 
     def in_launch(self, **kwargs):
-        try:
-            response = list(self.uplink.respond(self, {Status.activate: Status.accepted}))
-            yield from response
-        except queue.Empty:
-            return
+        yield from self.uplink.respond(self, {Status.activate: Status.accepted})
 
-        if response:
-            self.uplink.put(M(
-                channel=self.uplink,
-                sender=self.uid, group=response[0].group,
-                action=Status.complete,
-                content=self.marking
-            ))
-            yield None
+        # Transition here.
+
+        yield from self.uplink.send(
+            sender=self.uid, group=self.group,
+            action=Status.complete, content=self.marking
+        )
+        yield None
 
     def in_separation(self, **kwargs):
         if self.channels["uplink"].empty(self.uid):
@@ -145,6 +142,8 @@ class ProcletTests(unittest.TestCase):
         channels = {"uplink": Channel(), "beacon": Channel()}
         v = Vehicle(channels=dict(channels, bus=Channel()))
         c = Control(channels=channels, group={v.uid: v})
+        v.group = {c.uid: c}
+
         for n in range(12):
             with self.subTest(n=n):
                 c_flow = list(c())
