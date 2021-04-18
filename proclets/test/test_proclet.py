@@ -18,10 +18,11 @@
 
 import enum
 import sys
+import queue
 import unittest
 
 from proclets.performative import Channel
-from proclets.performative import Performative
+from proclets.performative import Performative as M
 from proclets.proclet import Proclet
 
 
@@ -30,6 +31,7 @@ class Status(enum.Enum):
     activate = enum.auto()
     accepted = enum.auto()
     declined = enum.auto()
+    complete = enum.auto()
 
 
 class Control(Proclet):
@@ -43,29 +45,33 @@ class Control(Proclet):
         }
 
     def in_launch(self, **kwargs):
-        yield Performative(
+        yield M(
             channel=self.channels["uplink"], sender=self.uid, group=self.group,
             action=Status.activate, content=self.marking
         )
         while not self.channels["uplink"].empty(self.uid):
-            p = self.channels["uplink"].get(self.uid)
-            if p.action == Status.accepted:
+            m = self.channels["uplink"].get(self.uid)
+            if m.action == Status.accepted:
                 yield
 
     def in_separation(self, **kwargs):
-        yield Performative(
+        yield M(
             channel=self.channels["uplink"], sender=self.uid, group=self.group,
             action=Status.activate, content=self.marking
         )
 
     def in_recovery(self, **kwargs):
-        yield Performative(
+        yield M(
             channel=self.channels["uplink"], sender=self.uid, group=self.group,
             action=Status.activate
         )
 
 
 class Vehicle(Proclet):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.uplink = self.channels["uplink"]
 
     @property
     def dag(self):
@@ -78,32 +84,44 @@ class Vehicle(Proclet):
         }
 
     def in_launch(self, **kwargs):
+        try:
+            response = list(self.uplink.respond(self, {Status.activate: Status.accepted}))
+            yield from response
+        except queue.Empty:
+            return
+
         if self.channels["uplink"].empty(self.uid):
-            yield Performative(sender=self.uid, content=self.marking)
+            yield M(sender=self.uid, content=self.marking)
             return
 
         while not self.channels["uplink"].empty(self.uid):
-            p = self.channels["uplink"].get(self.uid)
-            if p.action == Status.activate:
-                yield Performative(
+            m = self.channels["uplink"].get(self.uid)
+            if m.action == Status.activate:
+                yield M(
                     channel=self.channels["uplink"],
                     sender=self.uid, group=[p.uid],
                     action=Status.accepted,
                     content=self.marking
                 )
-                yield
+                yield M(
+                    channel=self.channels["uplink"],
+                    sender=self.uid, group=[p.uid],
+                    action=Status.complete,
+                    content=self.marking
+                )
+                return
         else:
-            yield Performative(sender=self.uid, content=self.marking)
+            yield M(sender=self.uid, content=self.marking)
 
     def in_separation(self, **kwargs):
         if self.channels["uplink"].empty(self.uid):
-            yield Performative(sender=self.uid, content=self.marking)
+            yield M(sender=self.uid, content=self.marking)
             return
 
         while not self.channels["uplink"].empty(self.uid):
-            p = self.channels["uplink"].get(self.uid)
-            if p.action == Status.activate:
-                yield Performative(
+            m = self.channels["uplink"].get(self.uid)
+            if m.action == Status.activate:
+                yield M(
                     channel=self.channels["uplink"],
                     sender=self.uid, group=[p.uid],
                     action=Status.accepted,
@@ -111,17 +129,17 @@ class Vehicle(Proclet):
                 )
                 yield
         else:
-            yield Performative(sender=self.uid, content=self.marking)
+            yield M(sender=self.uid, content=self.marking)
 
 
     def in_orbit(self, **kwargs):
-        yield Performative()
+        yield M()
 
     def in_reentry(self, **kwargs):
-        yield Performative()
+        yield M()
 
     def in_recovery(self, **kwargs):
-        yield Performative()
+        yield M()
 
 
 class ProcletTests(unittest.TestCase):
@@ -143,5 +161,9 @@ class ProcletTests(unittest.TestCase):
         c = Control(channels=channels, group={v.uid: v})
         for n in range(12):
             with self.subTest(n=n):
+                c_flow = list(c())
+                v_flow = list(v())
+                self.assertTrue(c.marking)
+                self.assertTrue(v.marking)
                 print(*list(filter(None, c())), sep="\n", file=sys.stderr)
                 print(*list(filter(None, v())), sep="\n", file=sys.stderr)

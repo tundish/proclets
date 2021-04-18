@@ -76,3 +76,9 @@ class Channel:
         self.ready[uid] -= 1
         item = self.store[uid][self.ready[uid]]
         return item
+
+    def respond(self, p, actions: dict):
+        while not self.empty(p.uid):
+            m = self.get(p.uid)
+        yield
+         

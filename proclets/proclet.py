@@ -68,11 +68,13 @@ class Proclet:
             for fn in proc.dag:
                 i_nodes = proc.i_nodes[fn]
                 if i_nodes.issubset(proc.marking):
+                    print("Activate: ", fn)
                     results = []
                     while not results or any(
-                        i.uid in self.pending for i in filter(None, results)
+                        i.uid in self.pending for i in filter(None, results)  # ?
                     ):
                         results = list(fn(**kwargs))
+                        print(results)
 
                     for obj in results:
                         if obj is None:
