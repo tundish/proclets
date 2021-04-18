@@ -61,7 +61,6 @@ class Channel:
         for uid in item.group:
             self.ready[uid] += 1
             self.store[uid].appendleft(item)
-            print(item)
             n += 1
         return n
 

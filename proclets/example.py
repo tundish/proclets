@@ -23,7 +23,7 @@ from dataclasses import field
 import unittest
 import uuid
 
-from proclets.performative import Channel
+from proclets.channel import Channel
 from proclets.performative import Performative
 from proclets.proclet import Proclet
 

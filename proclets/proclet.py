@@ -58,7 +58,6 @@ class Proclet:
 
     def __call__(self, **kwargs):
         for proc in list(self.pending.values()):
-            print(proc)
             if proc is not self:
                 yield from proc(**kwargs)
                 continue
@@ -69,11 +68,11 @@ class Proclet:
                 if i_nodes.issubset(proc.marking):
                     for obj in fn(**kwargs):
                         if obj is None:
-                            # Transition complete
+                            # Transition is complete
                             proc.marking -= i_nodes
                             marking.update(proc.o_nodes[fn])
-                            print(marking)
                         elif isinstance(obj, Proclet):
+                            # Transition spawns a new Proclet
                             self.pending[obj.uid] = obj
                             yield obj
                         else:

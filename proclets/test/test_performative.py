@@ -19,7 +19,7 @@
 import queue
 import unittest
 
-from proclets.performative import Channel
+from proclets.channel import Channel
 from proclets.performative import Performative
 
 
@@ -46,7 +46,7 @@ class ChannelTests(unittest.TestCase):
     def test_put_empty_group(self):
         c = Channel()
         p = Performative(group=[])
-        self.assertEqual(0, c.put(p))
+        self.assertIsNone(c.put(p))
 
     def test_put_one_in_group(self):
         c = Channel()
