@@ -68,15 +68,16 @@ class Channel:
         item = self.store[uid][self.ready[uid]]
         return item
 
-    def respond(self, p: Proclet, actions: dict):
+    def respond(self, p: Proclet, actions: dict, content: dict=None):
         while not self.empty(p.uid):
             m = self.get(p.uid)
             action = actions.get(m.action)
-            reply = Performative(
-                channel=self,
-                sender=p.uid, group=[m.sender],
-                action=action,
-                content=p.marking
-            )
-            yield reply
+            content = content and content.get(m.action) or p.marking
+            if action:
+                yield Performative(
+                    channel=self,
+                    sender=p.uid, group=[m.sender],
+                    action=action,
+                    content=content
+                )
          

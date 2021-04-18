@@ -25,8 +25,6 @@ import queue
 import time
 import uuid
 
-from proclets.performative import Performative
-
 
 class Proclet:
     """
@@ -68,11 +66,14 @@ class Proclet:
             for fn in proc.dag:
                 i_nodes = proc.i_nodes[fn]
                 if i_nodes.issubset(proc.marking):
-                    print("Activate: ", fn)
+                    n = 1
                     results = []
-                    while not results or any(
-                        i.uid in self.pending for i in filter(None, results)  # ?
-                    ):
+                    #while not results or any(
+                    #    i.uid in self.pending for i in filter(None, results)  # ?
+                    #):
+                    while not results and n < 12:
+                        n += 1
+                        print(fn)
                         results = list(fn(**kwargs))
                         print(results)
 
@@ -81,17 +82,13 @@ class Proclet:
                             # Transition complete
                             proc.marking -= i_nodes
                             marking.update(proc.o_nodes[fn])
+                            print(marking)
                             continue
                         elif isinstance(obj, Proclet):
                             self.pending[obj.uid] = obj
                             yield obj
-                        elif isinstance(obj, Performative):
-                            try:
-                                obj.channel.put(obj)
-                            except (AttributeError,):
-                                pass
-                            finally:
-                                yield obj
+                        else:
+                            yield obj
 
             proc.marking = marking
 

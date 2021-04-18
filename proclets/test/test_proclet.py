@@ -22,7 +22,7 @@ import queue
 import unittest
 
 from proclets.channel import Channel
-from proclets.performative import Performative as P
+from proclets.performative import Performative as M
 from proclets.proclet import Proclet
 
 
@@ -45,7 +45,7 @@ class Control(Proclet):
         }
 
     def in_launch(self, **kwargs):
-        yield P(
+        yield M(
             channel=self.channels["uplink"], sender=self.uid, group=self.group,
             action=Status.activate, content=self.marking
         )
@@ -55,13 +55,13 @@ class Control(Proclet):
                 yield
 
     def in_separation(self, **kwargs):
-        yield P(
+        yield M(
             channel=self.channels["uplink"], sender=self.uid, group=self.group,
             action=Status.activate, content=self.marking
         )
 
     def in_recovery(self, **kwargs):
-        yield P(
+        yield M(
             channel=self.channels["uplink"], sender=self.uid, group=self.group,
             action=Status.activate
         )
@@ -91,22 +91,23 @@ class Vehicle(Proclet):
             return
 
         if response:
-            yield P(
-                channel=self.channels["uplink"],
+            self.uplink.put(M(
+                channel=self.uplink,
                 sender=self.uid, group=response[0].group,
                 action=Status.complete,
                 content=self.marking
-            )
+            ))
+            yield None
 
     def in_separation(self, **kwargs):
         if self.channels["uplink"].empty(self.uid):
-            yield P(sender=self.uid, content=self.marking)
+            yield M(sender=self.uid, content=self.marking)
             return
 
         while not self.channels["uplink"].empty(self.uid):
             m = self.channels["uplink"].get(self.uid)
             if m.action == Status.activate:
-                yield P(
+                yield M(
                     channel=self.channels["uplink"],
                     sender=self.uid, group=[p.uid],
                     action=Status.accepted,
@@ -114,17 +115,17 @@ class Vehicle(Proclet):
                 )
                 yield
         else:
-            yield P(sender=self.uid, content=self.marking)
+            yield M(sender=self.uid, content=self.marking)
 
 
     def in_orbit(self, **kwargs):
-        yield P()
+        yield M()
 
     def in_reentry(self, **kwargs):
-        yield P()
+        yield M()
 
     def in_recovery(self, **kwargs):
-        yield P()
+        yield M()
 
 
 class ProcletTests(unittest.TestCase):
