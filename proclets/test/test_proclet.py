@@ -70,6 +70,7 @@ class Vehicle(Proclet):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.beacon = self.channels.get("beacon")
         self.uplink = self.channels.get("uplink")
 
     @property
@@ -96,8 +97,10 @@ class Vehicle(Proclet):
     def in_separation(self, **kwargs):
         yield from self.uplink.respond(self, {Status.activate: Status.accepted})
 
-        # Transition here.
-        yield Vehicle(channels=self.channels, marking=self.marking.copy())
+        yield Vehicle(
+            channels=self.channels.copy(), group=self.group.copy(),
+            marking=self.i_nodes[self.in_reentry]
+        )
 
         yield from self.uplink.send(
             sender=self.uid, group=self.group,
@@ -106,9 +109,11 @@ class Vehicle(Proclet):
         yield None
 
     def in_orbit(self, **kwargs):
+        print("In orbit!")
         yield None
 
     def in_reentry(self, **kwargs):
+        print("In reentry!")
         yield None
 
     def in_recovery(self, **kwargs):
