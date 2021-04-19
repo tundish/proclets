@@ -25,6 +25,7 @@ import enum
 import functools
 import queue
 import time
+from typing import Generator
 import uuid
 
 from proclets.performative import Performative
@@ -78,7 +79,7 @@ class Channel:
         for i in range(sent):
             yield item
 
-    def respond(self, p: Proclet, actions: dict, contents: dict=None):
+    def respond(self, p: Proclet, fn: Generator, actions: dict, contents: dict=None):
         while not self.empty(p.uid):
             m = self.get(p.uid)
             action = actions.get(m.action)
@@ -86,7 +87,8 @@ class Channel:
             if action:
                 yield from self.send(
                     sender=p.uid, group=[m.sender],
-                    action=action, content=content
+                    action=action, content=content,
+                    connect=m.connect or m.uid
                 )
             elif m.action in actions:
                 yield None

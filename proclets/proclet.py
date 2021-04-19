@@ -66,7 +66,7 @@ class Proclet:
             for fn in proc.dag:
                 i_nodes = proc.i_nodes[fn]
                 if i_nodes.issubset(proc.marking):
-                    for obj in fn(**kwargs):
+                    for obj in fn(fn, **kwargs):
                         if obj is None:
                             # Transition is complete
                             proc.marking -= i_nodes

@@ -36,6 +36,8 @@ class Performative:
     channel:    uuid.UUID = None
     sender:     uuid.UUID = None
     group:      list[uuid.UUID] = None
+    connect:    uuid.UUID = None
+    context:    set[int] = None
     action:     enum.Enum = None
     content:    object = None
 
