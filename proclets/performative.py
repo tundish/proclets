@@ -28,6 +28,26 @@ import time
 import uuid
 
 
+class Entry(enum.Enum):
+
+    request = enum.auto()
+    promise = enum.auto()
+    decline = enum.auto()
+    confirm = enum.auto()
+    counter = enum.auto()
+    abandon = enum.auto()
+    message = enum.auto()
+
+
+class Exit(enum.Enum):
+
+    deliver = enum.auto()
+    decline = enum.auto()
+    confirm = enum.auto()
+    abandon = enum.auto()
+    message = enum.auto()
+
+
 @dataclass(order=True)
 class Performative:
 

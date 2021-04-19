@@ -22,16 +22,9 @@ import queue
 import unittest
 
 from proclets.channel import Channel
+from proclets.performative import Entry
+from proclets.performative import Exit
 from proclets.proclet import Proclet
-
-
-class Status(enum.Enum):
-
-    activate = enum.auto()
-    accepted = enum.auto()
-    declined = enum.auto()
-    received = enum.auto()
-    complete = enum.auto()
 
 
 class Control(Proclet):
@@ -51,16 +44,16 @@ class Control(Proclet):
     def pro_launch(self, this, **kwargs):
         yield from self.uplink.send(
             sender=self.uid, group=self.group,
-            action=Status.activate, content=self.marking
+            action=Entry.request, content=self.marking
         )
-        yield from self.uplink.respond(self, this, {Status.accepted: Status.received, Status.complete: None})
+        yield from self.uplink.respond(self, this, {Entry.promise: Entry.confirm, Exit.deliver: None})
 
     def pro_separation(self, this, **kwargs):
         yield from self.uplink.send(
             sender=self.uid, group=self.group,
-            action=Status.activate, content=self.marking
+            action=Entry.request, content=self.marking
         )
-        yield from self.uplink.respond(self, this, {Status.accepted: Status.received, Status.complete: None})
+        yield from self.uplink.respond(self, this, {Entry.promise: Entry.confirm, Exit.deliver: None})
 
     def pro_recovery(self, this, **kwargs):
         yield None
@@ -84,18 +77,22 @@ class Vehicle(Proclet):
         }
 
     def pro_launch(self, this, **kwargs):
-        yield from self.uplink.respond(self, this, {Status.activate: Status.accepted})
+        m = next(self.uplink.respond(self, this, {Entry.request: Entry.promise}), None)
+        if not m: return
+        yield m
 
         # Transition here.
 
         yield from self.uplink.send(
-            sender=self.uid, group=self.group,
-            action=Status.complete, content=self.marking
+            sender=self.uid, group=self.group, connect=m.connect,
+            action=Exit.deliver, content=self.marking
         )
         yield None
 
     def pro_separation(self, this, **kwargs):
-        yield from self.uplink.respond(self, this, {Status.activate: Status.accepted})
+        m = next(self.uplink.respond(self, this, {Entry.request: Entry.promise}), None)
+        if not m: return
+        yield m
 
         yield Vehicle(
             channels=self.channels.copy(), group=self.group.copy(),
@@ -103,8 +100,8 @@ class Vehicle(Proclet):
         )
 
         yield from self.uplink.send(
-            sender=self.uid, group=self.group,
-            action=Status.complete, content=self.marking
+            sender=self.uid, group=self.group, connect=m.connect,
+            action=Exit.deliver, content=self.marking
         )
         yield None
 
@@ -149,8 +146,8 @@ class ProcletTests(unittest.TestCase):
                 self.assertTrue(v.marking)
                 self.assertFalse(any(i.content is None for i in c_flow if not isinstance(i, Proclet)))
                 self.assertFalse(any(i.content is None for i in v_flow if not isinstance(i, Proclet)))
-                print(*c_flow, sep="\n", file=sys.stderr)
-                print(*v_flow, sep="\n", file=sys.stderr)
+                print(*["{connect!s:>36}|{sender.hex}|{action}".format(**vars(i)) for i in c_flow], sep="\n", file=sys.stderr)
+                print(*["{connect!s:>36}|{sender.hex}|{action}".format(**vars(i)) for i in v_flow], sep="\n", file=sys.stderr)
             if n == 0:
                 pass
                 #self.assertIn(c.pro_separation, c.activated)
