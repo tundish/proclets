@@ -31,6 +31,7 @@ class Control(Proclet):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.beacon = self.channels.get("beacon")
         self.uplink = self.channels.get("uplink")
         self.tasks = {}
 
@@ -77,7 +78,14 @@ class Control(Proclet):
         )
 
     def pro_recovery(self, this, **kwargs):
-        yield None
+        try:
+            msg = self.beacon.get(self.uid)
+            yield Recovery("Recovery Team", marking={0})
+        except queue.Empty:
+            pass
+
+        if self.tally[this] == 2:
+            yield None
 
 
 class Vehicle(Proclet):
@@ -138,7 +146,7 @@ class Vehicle(Proclet):
 
         yield Vehicle(
             "Launch vehicle",
-            channels=self.channels.copy(), group=self.group.copy(),
+            channels={"beacon": self.beacon}, group=self.group.copy(),
             marking=self.i_nodes[self.pro_reentry]
         )
 
@@ -149,11 +157,28 @@ class Vehicle(Proclet):
         yield None
 
     def pro_orbit(self, this, **kwargs):
-        print(self.name, "in orbit!", self.slate[this], self.tally[this])
-        yield None
+        if not self.uplink:
+            yield None
+
+        n = self.tasks.get(this, 1)
+        if n < 4:
+            yield from self.uplink.send(
+                sender=self.uid, group=self.group,
+                action=Entry.message, content=f"{self.name} in orbit {n}"
+            )
+            self.tasks[this] = n + 1
+        else:
+            yield from self.uplink.send(
+                sender=self.uid, group=self.group,
+                action=Exit.message, content=f"{self.name} orbits complete"
+            )
+            yield None
 
     def pro_reentry(self, this, **kwargs):
-        print(self.name, "in reentry!", self.slate[this], self.tally[this])
+        yield from self.beacon.send(
+            sender=self.uid, group=self.group,
+            action=Exit.message, content=f"{self.name} in reentry"
+        )
         yield None
 
     def pro_recovery(self, this, **kwargs):
@@ -161,6 +186,12 @@ class Vehicle(Proclet):
 
 
 class Recovery(Proclet):
+
+    @property
+    def dag(self):
+        return {
+            self.pro_recovery: [],
+        }
 
     def pro_recovery(self, this, **kwargs):
         yield None
@@ -173,7 +204,7 @@ class ProcletTests(unittest.TestCase):
         try:
             return "{connect!s:>36}|{sender.hex}|{action:<14}|{content}".format(**vars(m))
         except KeyError:
-            return "{0.name}".format(m)
+            return "{0}|{1}|Create Proclet|{2.name}".format(" "*36, " "*32, m)
 
     def test_initial_markings(self):
         c = Control(None)
@@ -193,13 +224,11 @@ class ProcletTests(unittest.TestCase):
         v.group = {c.uid: c}
         self.assertIn(c.pro_launch, c.activated)
         self.assertIn(v.pro_launch, v.activated)
-        print(v.arcs)
 
         for n in range(6):
             with self.subTest(n=n):
                 c_flow = list(c())
                 v_flow = list(v())
-                print(v.marking)
                 self.assertTrue(c.marking)
                 self.assertTrue(v.marking)
                 self.assertFalse(any(i.content is None for i in c_flow if not isinstance(i, Proclet)))

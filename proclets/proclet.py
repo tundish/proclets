@@ -70,27 +70,26 @@ class Proclet:
 
             n = 1
             marking = set()
-            for fn in proc.dag:
-                i_nodes = proc.i_nodes[fn]
-                if i_nodes.issubset(proc.marking):
-                    print(fn)
-                    for obj in fn(fn, **kwargs):
-                        if obj is None:
-                            # Transition is complete
-                            proc.marking -= i_nodes
-                            marking.update(proc.o_nodes[fn])
-                            self.slate[fn] = n = 0
-                        elif isinstance(obj, Proclet):
-                            # Transition spawns a new Proclet
-                            self.pending[obj.uid] = obj
-                            yield obj
-                        else:
-                            yield obj
-                    else:
-                        self.slate[fn] += n
-                        self.tally[fn] += 1
+            try:
+                fn = next(fn for fn in proc.activated)
+            except StopIteration:
+                return
 
-            proc.marking = marking or proc.marking
+            for obj in fn(fn, **kwargs):
+                if obj is None:
+                    # Transition is complete
+                    proc.marking -= proc.i_nodes[fn]
+                    proc.marking.update(proc.o_nodes[fn])
+                    n = self.slate[fn] = 0
+                elif isinstance(obj, Proclet):
+                    # Transition spawns a new Proclet
+                    self.pending[obj.uid] = obj
+                    yield obj
+                else:
+                    yield obj
+            else:
+                self.slate[fn] += n
+                self.tally[fn] += 1
 
     @property
     def dag(self):
