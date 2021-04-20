@@ -175,6 +175,8 @@ class Vehicle(Proclet):
             yield None
 
     def pro_reentry(self, this, **kwargs):
+        if self.slate.get(self.pro_orbit):
+            return
         yield from self.beacon.send(
             sender=self.uid, group=self.group,
             action=Exit.message, content=f"{self.name} in reentry"
@@ -225,7 +227,7 @@ class ProcletTests(unittest.TestCase):
         self.assertIn(c.pro_launch, c.activated)
         self.assertIn(v.pro_launch, v.activated)
 
-        for n in range(6):
+        for n in range(7):
             with self.subTest(n=n):
                 c_flow = list(c())
                 v_flow = list(v())
