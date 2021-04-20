@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with proclets.  If not, see <http://www.gnu.org/licenses/>.
 
+from collections import Counter
 from collections import defaultdict
 from dataclasses import dataclass
 from dataclasses import field
@@ -47,13 +48,17 @@ class Proclet:
                 yield n, (k, i)
 
     def __init__(
-        self, *args, uid=None, channels=None, group=None, marking=None
+        self, *args,
+        uid=None, channels=None, group=None,
+        marking=None, slate=None, tally=None,
     ):
         self.uid = uid or uuid.uuid4()
         self.channels = channels or {}
         self.group = group or set()
         self.arcs = dict(self.build_arcs(self.dag))
         self.marking = marking or {0}
+        self.slate = slate or Counter()
+        self.tally = tally or Counter()
         self.pending = {self.uid: self}
 
     def __call__(self, **kwargs):
@@ -71,12 +76,16 @@ class Proclet:
                             # Transition is complete
                             proc.marking -= i_nodes
                             marking.update(proc.o_nodes[fn])
+                            self.slate[fn] = 0
                         elif isinstance(obj, Proclet):
                             # Transition spawns a new Proclet
                             self.pending[obj.uid] = obj
                             yield obj
                         else:
                             yield obj
+                    else:
+                        self.slate[fn] += 1
+                        self.tally[fn] += 1
 
             proc.marking = marking or proc.marking
 

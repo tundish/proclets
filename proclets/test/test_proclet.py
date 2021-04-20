@@ -106,11 +106,11 @@ class Vehicle(Proclet):
         yield None
 
     def pro_orbit(self, this, **kwargs):
-        print("In orbit!")
+        print("In orbit!", self.slate[this], self.tally[this])
         yield None
 
     def pro_reentry(self, this, **kwargs):
-        print("In reentry!")
+        print("In reentry!", self.slate[this], self.tally[this])
         yield None
 
     def pro_recovery(self, this, **kwargs):
