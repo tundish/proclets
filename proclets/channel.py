@@ -41,8 +41,8 @@ class Channel:
     Fahland (2019)
 
     """
-    def __init__(self):
-        self.store = defaultdict(deque)
+    def __init__(self, maxlen=None):
+        self.store = defaultdict(functools.partial(deque, maxlen=maxlen))
         self.ready = Counter()
 
     def qsize(self, uid):

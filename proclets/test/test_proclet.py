@@ -138,7 +138,7 @@ class ProcletTests(unittest.TestCase):
         self.assertIn(c.pro_launch, c.activated)
         self.assertIn(v.pro_launch, v.activated)
 
-        for n in range(12):
+        for n in range(6):
             with self.subTest(n=n):
                 c_flow = list(c())
                 v_flow = list(v())
