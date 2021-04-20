@@ -10,6 +10,8 @@ Change Log
 =====
 
 * Add `activated` property to Proclet.
+* Adopt `slate` and `tally`.
+* Proclet unit tests run mostly clean.
 
 0.2.0
 =====
