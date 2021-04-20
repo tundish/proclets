@@ -48,11 +48,12 @@ class Proclet:
                 yield n, (k, i)
 
     def __init__(
-        self, *args,
+        self, name, *args,
         uid=None, channels=None, group=None,
         marking=None, slate=None, tally=None,
     ):
         self.uid = uid or uuid.uuid4()
+        self.name = name or self.uid
         self.channels = channels or {}
         self.group = group or set()
         self.arcs = dict(self.build_arcs(self.dag))
@@ -67,16 +68,18 @@ class Proclet:
                 yield from proc(**kwargs)
                 continue
 
+            n = 1
             marking = set()
             for fn in proc.dag:
                 i_nodes = proc.i_nodes[fn]
                 if i_nodes.issubset(proc.marking):
+                    print(fn)
                     for obj in fn(fn, **kwargs):
                         if obj is None:
                             # Transition is complete
                             proc.marking -= i_nodes
                             marking.update(proc.o_nodes[fn])
-                            self.slate[fn] = 0
+                            self.slate[fn] = n = 0
                         elif isinstance(obj, Proclet):
                             # Transition spawns a new Proclet
                             self.pending[obj.uid] = obj
@@ -84,7 +87,7 @@ class Proclet:
                         else:
                             yield obj
                     else:
-                        self.slate[fn] += 1
+                        self.slate[fn] += n
                         self.tally[fn] += 1
 
             proc.marking = marking or proc.marking

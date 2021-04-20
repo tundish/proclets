@@ -84,11 +84,11 @@ class Channel:
             m = self.get(p.uid)
             action = actions.get(m.action)
             content = contents and contents.get(m.action) or p.marking
-            if action:
+            if action is not None:
                 yield from self.send(
                     sender=p.uid, group=[m.sender],
                     action=action, content=content,
                     connect=m.connect or m.uid
                 )
             elif m.action in actions:
-                yield None
+                yield action
