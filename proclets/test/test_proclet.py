@@ -81,7 +81,7 @@ class Control(Proclet):
         try:
             msg = self.beacon.get(self.uid)
             channels = {k: self.channels[k] for k in ("beacon", "vhf")}
-            yield Recovery("Recovery Team", channels=channels, marking={0})
+            yield Recovery("Recovery Team", channels=channels, group={self.uid}, marking={0})
         except queue.Empty:
             pass
 
