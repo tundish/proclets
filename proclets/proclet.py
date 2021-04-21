@@ -87,9 +87,8 @@ class Proclet:
                     yield obj
                 else:
                     yield obj
-            else:
-                self.slate[fn] += n
-                self.tally[fn] += 1
+            self.slate[fn] += n
+            self.tally[fn] += 1
 
     @property
     def dag(self):
@@ -97,7 +96,7 @@ class Proclet:
 
     @property
     def activated(self):
-        return {self.arcs[i][1] for i in self.marking}
+        return [self.arcs[i][1] for i in sorted(self.marking)]
 
     @functools.cached_property
     def i_nodes(self):

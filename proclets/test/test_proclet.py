@@ -289,9 +289,9 @@ class ProcletTests(unittest.TestCase):
                 elif n == 9:
                     self.assertIn(c.pro_recovery, c.activated)
                     self.assertIn(v.pro_reentry, v.activated)
-                #elif n == 10:
-                #    self.assertIn(c.pro_recovery, c.activated)
-                #    self.assertIn(v.pro_recovery, v.activated)
+                elif n == 10:
+                    self.assertIn(c.pro_recovery, c.activated)
+                    self.assertIn(v.pro_recovery, v.activated)
 
         vehicles = [i for i in lookup.values() if isinstance(i, Vehicle)]
         self.assertEqual(2, len(vehicles))
