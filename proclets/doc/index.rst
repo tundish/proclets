@@ -1,20 +1,21 @@
-.. proclets documentation master file, created by
-   sphinx-quickstart on Wed Apr 21 07:53:40 2021.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+..  Titling
+    ##++::==~~--''``
 
-Welcome to proclets's documentation!
-====================================
+Proclets
+++++++++
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
 
-
-
-Indices and tables
-==================
+   intro
+   channel
+   proclet
+   example
+   changes
 
 * :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+
+.. include:: ../../README.rst
+
+.. _GNU General Public License: http://www.gnu.org/licenses/gpl.html
+.. _issue tracker: https://github.com/tundish/proclets/issues
