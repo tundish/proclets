@@ -42,7 +42,22 @@ setup(
         " or later (GPLv3+)"
     ],
     packages=["proclets", "proclets.test"],
-    package_data={},
+    package_data={
+        "proclets": [
+            "doc/*.rst",
+            "doc/_templates/*.css",
+            "doc/html/*.html",
+            "doc/html/*.js",
+            "doc/html/_sources/*",
+            "doc/html/_static/css/*",
+            "doc/html/_static/font/*",
+            "doc/html/_static/js/*",
+            "doc/html/_static/*.css",
+            "doc/html/_static/*.gif",
+            "doc/html/_static/*.js",
+            "doc/html/_static/*.png",
+        ],
+    },
     install_requires=[],
     extras_require={
         "dev": [
