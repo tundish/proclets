@@ -80,7 +80,8 @@ class Control(Proclet):
     def pro_recovery(self, this, **kwargs):
         try:
             msg = self.beacon.get(self.uid)
-            yield Recovery("Recovery Team", marking={0})
+            channels = {k: self.channels[k] for k in ("beacon", "vhf")}
+            yield Recovery("Recovery Team", channels=channels, marking={0})
         except queue.Empty:
             pass
 
@@ -221,8 +222,8 @@ class ProcletTests(unittest.TestCase):
 
     def test_flow(self):
         channels = {"uplink": Channel(), "beacon": Channel()}
-        v = Vehicle("Space vehicle", channels=dict(channels, bus=Channel()))
-        c = Control("Mission control", channels=channels, group={v.uid: v})
+        v = Vehicle("Space vehicle", channels=channels)
+        c = Control("Mission control", channels=dict(channels, vhf=Channel()), group={v.uid: v})
         v.group = {c.uid: c}
         self.assertIn(c.pro_launch, c.activated)
         self.assertIn(v.pro_launch, v.activated)
