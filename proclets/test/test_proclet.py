@@ -22,7 +22,7 @@ import queue
 import unittest
 
 from proclets.channel import Channel
-from proclets.performative import Entry
+from proclets.performative import Init
 from proclets.performative import Exit
 from proclets.proclet import Proclet
 
@@ -33,6 +33,7 @@ class Control(Proclet):
         super().__init__(*args, **kwargs)
         self.beacon = self.channels.get("beacon")
         self.uplink = self.channels.get("uplink")
+        self.vhf = self.channels.get("vhf")
         self.tasks = {}
 
     @property
@@ -47,16 +48,16 @@ class Control(Proclet):
         if not self.tasks.get(this):
             self.tasks[this] = next(self.uplink.send(
                 sender=self.uid, group=self.group,
-                action=Entry.request, content=f"{self.name} go for launch"
+                action=Init.request, content="Advise ready for launch"
             ))
             yield self.tasks[this]
 
         yield from self.uplink.respond(
             self, this,
-            actions={Entry.promise: Entry.confirm, Exit.deliver: None},
+            actions={Init.promise: Init.confirm, Exit.deliver: None},
             contents={
-                Entry.promise: f"{self.name} copy your launch",
-                Exit.deliver: f"{self.name} launch complete"
+                Init.promise: "Launch initiated",
+                Exit.deliver: "Launch is complete"
             },
         )
 
@@ -64,29 +65,37 @@ class Control(Proclet):
         if not self.tasks.get(this):
             self.tasks[this] = next(self.uplink.send(
                 sender=self.uid, group=self.group,
-                action=Entry.request, content=f"{self.name} go for separation"
+                action=Init.request, content="You are go for separation"
             ))
             yield self.tasks[this]
 
         yield from self.uplink.respond(
             self, this,
-            actions={Entry.promise: Entry.confirm, Exit.deliver: None},
+            actions={Init.promise: Init.confirm, Exit.deliver: None},
             contents={
-                Entry.promise: f"{self.name} copy your separation",
-                Exit.deliver: f"{self.name} separation complete"
+                Init.promise: "Copy your separation",
+                Exit.deliver: "Separation complete"
             },
         )
 
     def pro_recovery(self, this, **kwargs):
+        if this not in self.tasks:
+            self.tasks[this] = set()
+
         try:
             msg = self.beacon.get(self.uid)
-            channels = {k: self.channels[k] for k in ("beacon", "vhf")}
-            yield Recovery("Recovery Team", channels=channels, group={self.uid}, marking={0})
         except queue.Empty:
-            pass
+            return
 
-        if self.tally[this] == 2:
-            yield None
+        if msg.sender not in self.tasks[this]:
+            self.tasks[this].add(msg.sender)
+            channels = {k: self.channels[k] for k in ("beacon", "vhf")}
+            r = Recovery("Recovery Team", channels=channels, group={self.uid}, marking={0})
+            yield from self.vhf.send(
+                sender=self.uid, group=[r.uid],
+                action=Init.request, content="Briefing Recovery Team"
+            )
+            yield r
 
 
 class Vehicle(Proclet):
@@ -102,7 +111,7 @@ class Vehicle(Proclet):
         return {
             self.pro_launch: [self.pro_separation],
             self.pro_separation: [self.pro_orbit, self.pro_reentry],
-            self.pro_orbit: [self.pro_orbit, self.pro_reentry],
+            self.pro_orbit: [self.pro_reentry],
             self.pro_reentry: [self.pro_recovery],
             self.pro_recovery: [],
         }
@@ -113,8 +122,8 @@ class Vehicle(Proclet):
                 m = next(
                     self.uplink.respond(
                         self, this,
-                        actions={Entry.request: Entry.promise},
-                        contents={Entry.request: f"{self.name} acknowledge go for launch"},
+                        actions={Init.request: Init.promise},
+                        contents={Init.request: "We are go for launch"},
                     )
                 )
             except (StopIteration, queue.Empty):
@@ -122,12 +131,12 @@ class Vehicle(Proclet):
             else:
                 self.tasks[this] = m.connect
                 yield m
-
-        yield from self.uplink.send(
-            sender=self.uid, group=self.group, connect=self.tasks[this],
-            action=Exit.deliver, content=f"{self.name} launch complete"
-        )
-        yield None
+        else:
+            yield from self.uplink.send(
+                sender=self.uid, group=self.group, connect=self.tasks[this],
+                action=Exit.deliver, content="Launch phase is complete"
+            )
+            yield None
 
     def pro_separation(self, this, **kwargs):
         if not self.tasks.get(this):
@@ -135,8 +144,8 @@ class Vehicle(Proclet):
                 m = next(
                     self.uplink.respond(
                         self, this,
-                        actions={Entry.request: Entry.promise},
-                        contents={Entry.request: f"{self.name} acknowledge go for separation"},
+                        actions={Init.request: Init.promise},
+                        contents={Init.request: "Separation initiated"},
                     )
                 )
             except (StopIteration, queue.Empty):
@@ -144,18 +153,18 @@ class Vehicle(Proclet):
             else:
                 self.tasks[this] = m.connect
                 yield m
+        else:
+            yield Vehicle(
+                "Launch vehicle",
+                channels={"beacon": self.beacon}, group=self.group.copy(),
+                marking=self.i_nodes[self.pro_reentry]
+            )
 
-        yield Vehicle(
-            "Launch vehicle",
-            channels={"beacon": self.beacon}, group=self.group.copy(),
-            marking=self.i_nodes[self.pro_reentry]
-        )
-
-        yield from self.uplink.send(
-            sender=self.uid, group=self.group, connect=self.tasks[this],
-            action=Exit.deliver, content=f"{self.name} separation complete"
-        )
-        yield None
+            yield from self.uplink.send(
+                sender=self.uid, group=self.group, connect=self.tasks[this],
+                action=Exit.deliver, content="Separation complete"
+            )
+            yield None
 
     def pro_orbit(self, this, **kwargs):
         if not self.uplink:
@@ -165,24 +174,26 @@ class Vehicle(Proclet):
         if n < 4:
             yield from self.uplink.send(
                 sender=self.uid, group=self.group,
-                action=Entry.message, content=f"{self.name} in orbit {n}"
+                action=Init.message, content=f"In orbit {n}"
             )
             self.tasks[this] = n + 1
         else:
             yield from self.uplink.send(
                 sender=self.uid, group=self.group,
-                action=Exit.message, content=f"{self.name} orbits complete"
+                action=Exit.message, content="Orbits complete"
             )
             yield None
 
     def pro_reentry(self, this, **kwargs):
-        if self.slate.get(self.pro_orbit):
+        if self.uplink and self.tally[self.pro_orbit] != 4:
             return
-        yield from self.beacon.send(
-            sender=self.uid, group=self.group,
-            action=Exit.message, content=f"{self.name} in reentry"
-        )
-        yield None
+        elif self.tally[this]:
+            yield None
+        else:
+            yield from self.beacon.send(
+                sender=self.uid, group=self.group,
+                action=Exit.message, content="Re-entering atmosphere"
+            )
 
     def pro_recovery(self, this, **kwargs):
         yield None
@@ -197,17 +208,32 @@ class Recovery(Proclet):
         }
 
     def pro_recovery(self, this, **kwargs):
-        yield None
+        if hasattr(self, "task"):
+            yield None
+        try:
+            m = next(
+                self.channels.get("vhf").respond(
+                    self, this,
+                    actions={Init.request: Init.promise},
+                    contents={Init.request: f"{self.name} on our way"},
+                )
+            )
+        except (StopIteration, queue.Empty):
+            return
+        else:
+            self.task = m.connect
+            yield m
 
 
 class ProcletTests(unittest.TestCase):
 
     @staticmethod
-    def report(m):
+    def report(m, lookup):
         try:
-            return "{connect!s:>36}|{sender.hex}|{action:<14}|{content}".format(**vars(m))
-        except KeyError:
-            return "{0}|{1}|Create Proclet|{2.name}".format(" "*36, " "*32, m)
+            source = lookup[m.sender]
+            return "{connect!s:>36}|{source.name:15}|{action:<12}|{content}".format(source=source, **vars(m))
+        except AttributeError:
+            return "{0}|{1}|Call Proclet|{2.name}".format(" "*36, " "*15, m)
 
     def test_initial_markings(self):
         c = Control(None)
@@ -225,20 +251,49 @@ class ProcletTests(unittest.TestCase):
         v = Vehicle("Space vehicle", channels=channels)
         c = Control("Mission control", channels=dict(channels, vhf=Channel()), group={v.uid: v})
         v.group = {c.uid: c}
-        self.assertIn(c.pro_launch, c.activated)
-        self.assertIn(v.pro_launch, v.activated)
+        lookup = {c.uid: c, v.uid: v}
 
-        for n in range(7):
+        for n in range(12):
+            c_flow = list(c())
+            v_flow = list(v())
             with self.subTest(n=n):
-                c_flow = list(c())
-                v_flow = list(v())
-                self.assertTrue(c.marking)
                 self.assertTrue(v.marking)
-                self.assertFalse(any(i.content is None for i in c_flow if not isinstance(i, Proclet)))
-                self.assertFalse(any(i.content is None for i in v_flow if not isinstance(i, Proclet)))
-                print(*[self.report(i) for i in c_flow], sep="\n", file=sys.stderr)
-                print(*[self.report(i) for i in v_flow], sep="\n", file=sys.stderr)
-            if n == 0:
-                pass
-                #self.assertIn(c.pro_separation, c.activated)
-                #self.assertIn(v.pro_separation, v.activated)
+                self.assertTrue(c.marking)
+                for flow in (c_flow, v_flow):
+                    for item in flow:
+                        if isinstance(item, Proclet):
+                            lookup[item.uid] = item
+                        else:
+                            self.assertTrue(item.content)
+
+                        print(self.report(item, lookup), file=sys.stderr)
+
+                if n == 0:
+                    self.assertIn(c.pro_launch, c.activated)
+                    self.assertIn(v.pro_launch, v.activated)
+                elif n == 2:
+                    self.assertIn(c.pro_separation, c.activated)
+                    self.assertIn(v.pro_separation, v.activated)
+                elif n == 4:
+                    self.assertIn(c.pro_separation, c.activated)
+                    self.assertIn(v.pro_orbit, v.activated)
+                elif n == 5:
+                    self.assertIn(c.pro_recovery, c.activated)
+                    self.assertIn(v.pro_orbit, v.activated)
+                elif n == 7:
+                    self.assertIn(c.pro_recovery, c.activated)
+                    self.assertIn(v.pro_orbit, v.activated)
+                elif n == 8:
+                    self.assertIn(c.pro_recovery, c.activated)
+                    self.assertIn(v.pro_reentry, v.activated)
+                elif n == 9:
+                    self.assertIn(c.pro_recovery, c.activated)
+                    self.assertIn(v.pro_reentry, v.activated)
+                #elif n == 10:
+                #    self.assertIn(c.pro_recovery, c.activated)
+                #    self.assertIn(v.pro_recovery, v.activated)
+
+        vehicles = [i for i in lookup.values() if isinstance(i, Vehicle)]
+        self.assertEqual(2, len(vehicles))
+        recoveries = [i for i in lookup.values() if isinstance(i, Recovery)]
+        self.assertEqual(2, len(recoveries))

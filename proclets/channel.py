@@ -88,7 +88,8 @@ class Channel:
                 yield from self.send(
                     sender=p.uid, group=[m.sender],
                     action=action, content=content,
-                    connect=m.connect or m.uid
+                    connect=m.connect or m.uid,
+                    context=p.marking.copy()
                 )
             elif m.action in actions:
                 yield action

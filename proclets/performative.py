@@ -28,7 +28,7 @@ import time
 import uuid
 
 
-class Entry(enum.Enum):
+class Init(enum.Enum):
 
     request = enum.auto()
     promise = enum.auto()
