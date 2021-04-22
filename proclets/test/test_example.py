@@ -24,8 +24,8 @@ from proclets.example import Package
 from proclets.example import Delivery
 from proclets.example import Back
 from proclets.example import Product
-from proclets.performative import Performative
 from proclets.proclet import Proclet
+from proclets.types import Performative
 
 
 class ExampleTests(unittest.TestCase):

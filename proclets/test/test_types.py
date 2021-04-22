@@ -20,7 +20,7 @@ import queue
 import unittest
 
 from proclets.channel import Channel
-from proclets.performative import Performative
+from proclets.types import Performative
 
 
 class PerformativeTests(unittest.TestCase):

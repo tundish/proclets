@@ -1,8 +1,8 @@
 ..  Titling
     ##++::==~~--''``
 
-Overview
-::::::::
+Petri Nets and Workflows
+::::::::::::::::::::::::
 
 Petri Nets are a means of modelling real-world processes. They have many applications in Physics, Chemistry and
 Biology.
@@ -22,10 +22,10 @@ A fusion of the two is described in
 `Proclets: A framework for lightweight interacting workflow processes
 <https://dblp.org/rec/journals/ijcis/AalstBEW01>`_ (2001) by Van der Aalst, Barthelmess, Ellis and Wainer.
 It shows how to constrain Petri Nets so they behave predictably enough to be a model for business workflows, and it
-adds a UML-like relational notation to describe relationships between discrete processes.
+adds a UML-like relational notation to describe where discrete processes synchronise together.
 
 This `proclets` package provides the classes described in that paper.
 
-You can model a process graphically as a Proclet and then implement it in Python code without leaving that
+So you can sketch out a process in pencil as a Proclet and then implement it in Python code without leaving that
 conceptual framework.
-That makes it a simpler job to verify if your code accurately implements the model.
+Hopefully this makes it a simpler job to verify that your code accurately implements the model.

@@ -22,9 +22,9 @@ import queue
 import unittest
 
 from proclets.channel import Channel
-from proclets.performative import Init
-from proclets.performative import Exit
 from proclets.proclet import Proclet
+from proclets.types import Init
+from proclets.types import Exit
 
 
 class Control(Proclet):

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #   encoding: utf-8
 
 # This file is part of proclets.
@@ -28,8 +27,8 @@ import time
 from typing import Generator
 import uuid
 
-from proclets.performative import Performative
 from proclets.proclet import Proclet
+from proclets.types import Performative
 
 
 class Channel:
