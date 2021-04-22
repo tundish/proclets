@@ -12,7 +12,7 @@ first, so we can understand how the components must interact.
 
 Since the 1970s software architects have used graphical notations to describe operational behaviour. Most recently
 UML has standardised those notations into over a dozen different diagram types, each with its own particular
-focus; hence each being a good fit for some aspects of design, and less so for others.
+focus; hence each well fitted for some aspects of design, but less so for others.
 
 While UML is well specified for modeling sequential workflows, it lacks exact semantics around the synchronisation
 of concurrent ones. Conversely Petri Nets, though they elegantly portray the behaviour of concurrent processes,
