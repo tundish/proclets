@@ -215,7 +215,7 @@ class Recovery(Proclet):
                 self.channels.get("vhf").respond(
                     self, this,
                     actions={Init.request: Init.promise},
-                    contents={Init.request: f"{self.name} on our way"},
+                    contents={Init.request: "On our way"},
                 )
             )
         except (StopIteration, queue.Empty):

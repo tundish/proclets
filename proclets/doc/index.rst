@@ -8,8 +8,8 @@ Proclets
    :maxdepth: 1
 
    intro
-   channel
    proclet
+   channel
    example
    changes
 

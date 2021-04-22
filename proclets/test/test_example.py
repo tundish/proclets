@@ -31,18 +31,18 @@ from proclets.proclet import Proclet
 class ExampleTests(unittest.TestCase):
 
     def test_dag(self):
-        dag = Order().dag
-        arcs = Order().arcs
-        i_nodes = Order().i_nodes
+        dag = Order(None).dag
+        arcs = Order(None).arcs
+        i_nodes = Order(None).i_nodes
         self.assertEqual(4, len(dag), dag)
 
-        dag = Package().dag
+        dag = Package(None).dag
         self.assertEqual(8, len(dag), dag)
 
-        dag = Delivery().dag
+        dag = Delivery(None).dag
         self.assertEqual(6, len(dag), dag)
 
-        dag = Back().dag
+        dag = Back(None).dag
         self.assertEqual(3, len(dag), dag)
 
     def test_order(self):

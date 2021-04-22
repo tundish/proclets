@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from dataclasses import field
 import unittest
 import uuid
+import sys
 
 from proclets.channel import Channel
 from proclets.performative import Performative
@@ -52,23 +53,23 @@ class Order(Proclet):
     @property
     def dag(self):
         return {
-            self.create: [self.split],
-            self.split: [self.notify],
-            self.notify: [self.bill],
-            self.bill: [],
+            self.pro_create: [self.pro_split],
+            self.pro_split: [self.pro_notify],
+            self.pro_notify: [self.pro_bill],
+            self.pro_bill: [],
         }
 
-    def create(self, **kwargs):
+    def pro_create(self, this, **kwargs):
         self.items = {Item(p, q) for p, q in self.args.items()}
         self.channels["down"] = Channel()
         yield
 
-    def split(self, **kwargs):
+    def pro_split(self, this, **kwargs):
         # Create one Package proclet for each ordered Item.
         # Declare them as a single Channel Group
         self.group = {
-            item: Package(channels={"up": self.channels["down"]})
-            for item in self.items
+            item: Package(name=n, channels={"up": self.channels["down"]})
+            for n, item in enumerate(self.items)
         }
         for item, p in self.group.items():
             yield p
@@ -79,10 +80,10 @@ class Order(Proclet):
                 content=item
             )
 
-    def notify(self, **kwargs):
+    def pro_notify(self, this, **kwargs):
         yield Performative()
 
-    def bill(self, **kwargs):
+    def pro_bill(self, this, **kwargs):
         yield Performative()
 
 
@@ -91,40 +92,45 @@ class Package(Proclet):
     @property
     def dag(self):
         return {
-            self.split: [self.load],
-            self.load: [self.retry, self.deliver, self.undeliver],
-            self.retry: [self.load, self.finish],
-            self.deliver: [self.bill, self.finish],
-            self.undeliver: [self.bill, self.return_, self.finish],
-            self.return_: [self.bill],
-            self.bill: [self.bill],
-            self.finish: [],
+            self.pro_split: [self.pro_load],
+            self.pro_load: [self.pro_retry, self.pro_deliver, self.pro_undeliver],
+            self.pro_retry: [self.pro_load, self.pro_finish],
+            self.pro_deliver: [self.pro_bill, self.pro_finish],
+            self.pro_undeliver: [self.pro_bill, self.pro_return, self.pro_finish],
+            self.pro_return: [self.pro_bill],
+            self.pro_bill: [self.pro_bill],
+            self.pro_finish: [],
         }
 
-    def split(self, **kwargs):
+    def pro_split(self, this, **kwargs):
         yield
 
-    def load(self, **kwargs):
+    def pro_load(self, this, **kwargs):
         yield
 
-    def retry(self, **kwargs):
+    def pro_retry(self, this, **kwargs):
         yield
 
-    def deliver(self, **kwargs):
+    def pro_deliver(self, this, **kwargs):
         yield
 
-    def undeliver(self, **kwargs):
+    def pro_undeliver(self, this, **kwargs):
         yield
 
-    def return_(self, **kwargs):
+    def pro_return(self, this, **kwargs):
         yield
 
-    def bill(self, **kwargs):
+    def pro_bill(self, this, **kwargs):
         yield
 
-    def finish(self, **kwargs):
+    def pro_finish(self, this, **kwargs):
         yield
 
 
 class Delivery(Proclet): pass
 class Back(Proclet): pass
+
+if __name__ == "__main__":
+    order = Order(*list(Product))
+    while True:
+        print(*list(order()), sep="\n", file=sys.stderr)
