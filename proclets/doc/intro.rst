@@ -4,10 +4,10 @@
 Petri Nets and Workflows
 ::::::::::::::::::::::::
 
-Petri Nets are a means of modelling real-world processes. They have many applications in Physics, Chemistry and
-Biology.
+Petri Nets are a way to describe all sorts of real-world processes.
+They have many applications in Physics, Chemistry and Biology.
 
-In Software Engineering too, when we need to design a distributed system, it helps to build a model of that system
+In Software Engineering too, when we need to design a distributed system, we want to build a model of that system
 first, so we can understand how the components must interact.
 
 Since the 1970s software architects have used graphical notations to describe operational behaviour. Most recently

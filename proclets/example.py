@@ -20,9 +20,12 @@ import enum
 from collections import Counter
 from dataclasses import dataclass
 from dataclasses import field
-import unittest
-import uuid
+import itertools
+import logging
+import operator
+import random
 import sys
+import uuid
 
 from proclets.channel import Channel
 from proclets.proclet import Proclet
@@ -47,8 +50,7 @@ class Order(Proclet):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.args = Counter(args)
-        self.items = set()
+        self.items = args
 
     @property
     def dag(self):
@@ -60,25 +62,22 @@ class Order(Proclet):
         }
 
     def pro_create(self, this, **kwargs):
-        self.items = {Item(p, q) for p, q in self.args.items()}
-        self.channels["down"] = Channel()
+        for item in self.items:
+            logging.info(item)
         yield
 
     def pro_split(self, this, **kwargs):
-        # Create one Package proclet for each ordered Item.
-        # Declare them as a single Channel Group
-        self.group = {
-            item: Package(name=n, channels={"up": self.channels["down"]})
-            for n, item in enumerate(self.items)
-        }
-        for item, p in self.group.items():
-            yield p
+        durables, perishables = [], []
+        groups = itertools.groupby(self.items, key=operator.attrgetter("product"))
+        for p, g in groups:
+            if p in (Product.brush, Product.cloth):
+                durables.extend(g)
+            else:
+                perishables.extend(g)
 
-            # Activate the initial transition
-            yield Performative(
-                channel=p.channels["up"], sender=self.uid, group=[p.uid],
-                content=item
-            )
+        yield Package("durables", *durables)
+        yield Package("perishables", *perishables)
+        yield
 
     def pro_notify(self, this, **kwargs):
         yield Performative()
@@ -130,7 +129,35 @@ class Package(Proclet):
 class Delivery(Proclet): pass
 class Back(Proclet): pass
 
+class Account:
+
+    def __init__(self, channels=None):
+        self.channels  = channels or {}
+        self.pending = {}
+
+    def order(self, items):
+        rv = Order(
+            *items,
+            channels=self.channels,
+        )
+        self.pending[rv.uid] =  rv
+        return rv
+
+    @staticmethod
+    def report(p: Proclet):
+        yield from p()
+        for i in getattr(p, "pending", {}).values():
+            if i is not p:
+                yield from Account.report(i)
+
+
 if __name__ == "__main__":
-    order = Order(*list(Product))
-    while True:
-        print(*list(order()), sep="\n", file=sys.stderr)
+    logging.basicConfig(level=logging.INFO, style="{", format="{message}")
+    a = Account(channels={"orders": Channel(), "logistics": Channel()})
+    items = [Item(product=p, quantity=random.randint(1, 10)) for p in Product]
+    a.order(items)
+
+    #while a.pending:
+    for n in range(10):
+        for i in a.report(next(iter(a.pending.values()))):
+            logging.info(i)
