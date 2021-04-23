@@ -29,6 +29,8 @@ import uuid
 
 from proclets.channel import Channel
 from proclets.proclet import Proclet
+from proclets.types import Init
+from proclets.types import Exit
 from proclets.types import Performative
 
 
@@ -75,18 +77,28 @@ class Order(Proclet):
             else:
                 perishables.extend(g)
 
-        yield Package("durables", *durables)
-        yield Package("perishables", *perishables)
+        yield Package(*durables, channels=self.channels)
+        yield Package(*perishables, channels=self.channels)
         yield
 
     def pro_notify(self, this, **kwargs):
-        yield Performative()
+        for p in self.pending.values():
+            if p is self: continue
+            yield from self.channels["orders"].send(
+                sender=self.uid, group=[p.uid], connect=self.uid,
+                action=Init.request, context=set(self.pending.keys())
+            )
+        yield
 
     def pro_bill(self, this, **kwargs):
         yield Performative()
 
 
 class Package(Proclet):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.contents = args
 
     @property
     def dag(self):
@@ -102,9 +114,17 @@ class Package(Proclet):
         }
 
     def pro_split(self, this, **kwargs):
+        yield from self.channels["orders"].respond(
+            self, this,
+            actions={Init.request: Init.promise},
+            contents={Init.request: self.contents},
+        )
         yield
 
     def pro_load(self, this, **kwargs):
+        print("First van is full.")
+        #durables, perishables = [], []
+        #groups = itertools.groupby(self.items, key=operator.attrgetter("product"))
         yield
 
     def pro_retry(self, this, **kwargs):
@@ -161,3 +181,4 @@ if __name__ == "__main__":
     for n in range(10):
         for i in a.report(next(iter(a.pending.values()))):
             logging.info(i)
+    logging.info(a.channels["orders"].store)
