@@ -18,6 +18,7 @@
 
 import enum
 from collections import Counter
+from collections import deque
 from dataclasses import dataclass
 from dataclasses import field
 import itertools
@@ -91,10 +92,12 @@ class Order(Proclet):
         yield
 
     def pro_bill(self, this, **kwargs):
-        yield Performative()
+        yield
 
 
 class Package(Proclet):
+
+    delivery = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -122,7 +125,14 @@ class Package(Proclet):
         yield
 
     def pro_load(self, this, **kwargs):
-        print("First van is full.")
+        if not self.delivery:
+            rv = Delivery(
+                *items,
+                channels=self.channels,
+            )
+            self.delivery = rv.uid
+            yield rv
+
         #durables, perishables = [], []
         #groups = itertools.groupby(self.items, key=operator.attrgetter("product"))
         yield
@@ -146,39 +156,72 @@ class Package(Proclet):
         yield
 
 
-class Delivery(Proclet): pass
+class Delivery(Proclet):
+
+    attempts = Counter()
+
+    @property
+    def dag(self):
+        return {
+            self.pro_load: [self.pro_retry, self.pro_deliver, self.pro_undeliver],
+            self.pro_retry: [self.pro_load, self.pro_finish],
+            self.pro_deliver: [self.pro_bill, self.pro_finish],
+            self.pro_undeliver: [self.pro_bill, self.pro_return, self.pro_finish],
+            self.pro_return: [self.pro_bill],
+            self.pro_bill: [self.pro_bill],
+            self.pro_finish: [],
+        }
+
+    def pro_load(self, this, **kwargs):
+        yield
+
+    def pro_retry(self, this, **kwargs):
+        yield
+
+    def pro_deliver(self, this, **kwargs):
+        yield
+
+    def pro_undeliver(self, this, **kwargs):
+        yield
+
+    def pro_return(self, this, **kwargs):
+        yield
+
+    def pro_bill(self, this, **kwargs):
+        yield
+
+    def pro_finish(self, this, **kwargs):
+        yield
+
 class Back(Proclet): pass
 
 class Account:
 
     def __init__(self, channels=None):
         self.channels  = channels or {}
-        self.pending = {}
+        self.orders = {}
 
     def order(self, items):
-        rv = Order(
-            *items,
-            channels=self.channels,
-        )
-        self.pending[rv.uid] =  rv
+        rv = Order(*items, channels=self.channels)
+        self.orders[rv.uid] =  rv
         return rv
 
     @staticmethod
-    def report(p: Proclet):
+    def run(p: Proclet):
         yield from p()
         for i in getattr(p, "pending", {}).values():
             if i is not p:
-                yield from Account.report(i)
+                yield from Account.run(i)
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, style="{", format="{message}")
     a = Account(channels={"orders": Channel(), "logistics": Channel()})
     items = [Item(product=p, quantity=random.randint(1, 10)) for p in Product]
-    a.order(items)
+    order = a.order(items)
 
     #while a.pending:
     for n in range(10):
-        for i in a.report(next(iter(a.pending.values()))):
+        for i in a.run(order):
             logging.info(i)
     logging.info(a.channels["orders"].store)
