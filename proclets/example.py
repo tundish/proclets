@@ -18,6 +18,7 @@
 
 import enum
 from collections import Counter
+from collections import defaultdict
 from collections import deque
 from dataclasses import dataclass
 from dataclasses import field
@@ -162,6 +163,7 @@ class Delivery(Proclet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.attempts = Counter()
+        self.complete = defaultdict(bool)
 
     @property
     def dag(self):
@@ -180,23 +182,50 @@ class Delivery(Proclet):
             actions={Init.request: Init.promise},
         ))
         for m in messages:
-            self.attempts[m.sender] = 0
+            for p in m.group:
+                self.attempts[p] = 0
         yield from messages
 
     def pro_retry(self, this, **kwargs):
+        for n, (k, v) in enumerate(self.attempts.values()):
+            if n:
+                # Perishables miss their delivery
+                yield from self.channels["logistics"].send(
+                    sender=self.uid, group=[k],
+                    action=Init.counter, context={k},
+                )
+                self.attempts[k] += 1
         yield
 
     def pro_deliver(self, this, **kwargs):
+        for n, (k, v) in enumerate(self.attempts.values()):
+            if not n:
+                # Durables make their delivery
+                yield from self.channels["logistics"].send(
+                    sender=self.uid, group=[k],
+                    action=Exit.deliver, context={k},
+                )
+                self.attempts[k] += 1
         yield
 
     def pro_undeliver(self, this, **kwargs):
+        for k, v in self.attempts.values():
+            if not self.complete[k] and v > 3:
+                yield from self.channels["logistics"].send(
+                    sender=self.uid, group=[k],
+                    action=Exit.abandon, context={k},
+                )
         yield
 
     def pro_next(self, this, **kwargs):
+        # Stub method for compatibility with Fahland
         yield
 
     def pro_finish(self, this, **kwargs):
-        yield
+        messages = list(self.channels["logistics"].respond(
+            self, this,
+            actions={Exit.confirm: Exit.confirm},
+        ))
 
 class Back(Proclet): pass
 
@@ -226,7 +255,7 @@ if __name__ == "__main__":
     order = a.order(items)
 
     #while a.pending:
-    for n in range(10):
+    for n in range(100):
         for i in a.run(order):
             logging.info(i)
     logging.info(next(iter(Package.delivery.values())).attempts)
