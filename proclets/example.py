@@ -97,7 +97,7 @@ class Order(Proclet):
 
 class Package(Proclet):
 
-    delivery = None
+    delivery = dict()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -126,13 +126,14 @@ class Package(Proclet):
 
     def pro_load(self, this, **kwargs):
         if not self.delivery:
-            rv = Delivery(
-                *items,
-                channels=self.channels,
-            )
-            self.delivery = rv.uid
+            rv = Delivery("Royal Mail", channels=self.channels)
+            self.delivery[rv.uid] = rv
             yield rv
 
+        yield from self.channels["logistics"].send(
+            sender=self.uid, group=[next(iter(self.delivery.keys()))], connect=self.uid,
+            action=Init.request, context={i.uid for i in self.contents}, content=self.contents
+        )
         #durables, perishables = [], []
         #groups = itertools.groupby(self.items, key=operator.attrgetter("product"))
         yield
@@ -158,22 +159,29 @@ class Package(Proclet):
 
 class Delivery(Proclet):
 
-    attempts = Counter()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.attempts = Counter()
 
     @property
     def dag(self):
         return {
-            self.pro_load: [self.pro_retry, self.pro_deliver, self.pro_undeliver],
-            self.pro_retry: [self.pro_load, self.pro_finish],
-            self.pro_deliver: [self.pro_bill, self.pro_finish],
-            self.pro_undeliver: [self.pro_bill, self.pro_return, self.pro_finish],
-            self.pro_return: [self.pro_bill],
-            self.pro_bill: [self.pro_bill],
+            self.pro_load: [self.pro_retry, self.pro_deliver, self.pro_undeliver, self.pro_finish],
+            self.pro_retry: [self.pro_next],
+            self.pro_deliver: [self.pro_next],
+            self.pro_undeliver: [self.pro_next],
+            self.pro_next: [self.pro_retry, self.pro_deliver, self.pro_undeliver, self.pro_finish],
             self.pro_finish: [],
         }
 
     def pro_load(self, this, **kwargs):
-        yield
+        messages = list(self.channels["logistics"].respond(
+            self, this,
+            actions={Init.request: Init.promise},
+        ))
+        for m in messages:
+            self.attempts[m.sender] = 0
+        yield from messages
 
     def pro_retry(self, this, **kwargs):
         yield
@@ -184,10 +192,7 @@ class Delivery(Proclet):
     def pro_undeliver(self, this, **kwargs):
         yield
 
-    def pro_return(self, this, **kwargs):
-        yield
-
-    def pro_bill(self, this, **kwargs):
+    def pro_next(self, this, **kwargs):
         yield
 
     def pro_finish(self, this, **kwargs):
@@ -216,7 +221,7 @@ class Account:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, style="{", format="{message}")
-    a = Account(channels={"orders": Channel(), "logistics": Channel()})
+    a = Account(channels={"orders": Channel(), "logistics": Channel(), "billing": Channel()})
     items = [Item(product=p, quantity=random.randint(1, 10)) for p in Product]
     order = a.order(items)
 
@@ -224,4 +229,4 @@ if __name__ == "__main__":
     for n in range(10):
         for i in a.run(order):
             logging.info(i)
-    logging.info(a.channels["orders"].store)
+    logging.info(next(iter(Package.delivery.values())).attempts)

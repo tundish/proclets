@@ -78,17 +78,21 @@ class Channel:
         for i in range(sent):
             yield item
 
-    def respond(self, p: Proclet, fn: Generator, actions: dict, contents: dict=None):
+    def respond(
+        self, p: Proclet, fn: Generator,
+        actions: dict, contents: dict=None, context: set=None,
+        ):
         while not self.empty(p.uid):
             m = self.get(p.uid)
             action = actions.get(m.action)
             content = contents and contents.get(m.action) or p.marking
+            context = m.context and m.context.copy().union(context or set())
             if action is not None:
                 yield from self.send(
                     sender=p.uid, group=[m.sender],
                     action=action, content=content,
                     connect=m.connect or m.uid,
-                    context=p.marking.copy()
+                    context=context
                 )
             elif m.action in actions:
                 yield action
