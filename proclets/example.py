@@ -66,8 +66,7 @@ class Order(Proclet):
         }
 
     def pro_create(self, this, **kwargs):
-        for item in self.items:
-            logging.info(item)
+        # Stub method for compatibility with Fahland
         yield
 
     def pro_split(self, this, **kwargs):
@@ -251,9 +250,11 @@ class Account:
     def report(self, m):
         try:
             source = self.lookup[m.sender]
-            return "{connect!s:>36}|{source.name:15}|{action:<12}|{content}".format(source=source, **vars(m))
+            return "{connect!r:>36}|{source.name:15}|{action:<12}|{content}".format(source=source, **vars(m))
         except AttributeError:
             return "{0}|{1}|Call Proclet|{2.name}".format(" "*36, " "*15, m)
+        except TypeError:
+            print(m, file=sys.stderr)
 
 
 if __name__ == "__main__":
@@ -263,11 +264,7 @@ if __name__ == "__main__":
     order = a.order(items)
 
     #while a.pending:
-    for n in range(100):
+    for n in range(10):
         for i in a.run(order):
-            try:
-                logging.info(a.report(i))
-            except TypeError:
-                print(a.lookup)
-                print(i, file=sys.stderr)
+            logging.info(a.report(i))
     logging.info(next(iter(Package.delivery.values())).attempts)
