@@ -135,8 +135,6 @@ class Package(Proclet):
             sender=self.uid, group=[next(iter(self.delivery.keys()))], connect=self.uid,
             action=Init.request, context={i.uid for i in self.contents}, content=self.contents
         )
-        #durables, perishables = [], []
-        #groups = itertools.groupby(self.items, key=operator.attrgetter("product"))
         yield
 
     def pro_retry(self, this, **kwargs):
@@ -226,6 +224,7 @@ class Delivery(Proclet):
             self, this,
             actions={Exit.confirm: Exit.confirm},
         ))
+        yield from messages
 
 class Back(Proclet): pass
 
@@ -234,18 +233,27 @@ class Account:
     def __init__(self, channels=None):
         self.channels  = channels or {}
         self.orders = {}
+        self.lookup = {}
 
     def order(self, items):
         rv = Order(*items, channels=self.channels)
         self.orders[rv.uid] =  rv
         return rv
 
-    @staticmethod
-    def run(p: Proclet):
+    def run(self, p: Proclet):
+        self.lookup.update(getattr(p, "delivery", {}))
         yield from p()
         for i in getattr(p, "pending", {}).values():
+            self.lookup[i.uid] = i
             if i is not p:
-                yield from Account.run(i)
+                yield from self.run(i)
+
+    def report(self, m):
+        try:
+            source = self.lookup[m.sender]
+            return "{connect!s:>36}|{source.name:15}|{action:<12}|{content}".format(source=source, **vars(m))
+        except AttributeError:
+            return "{0}|{1}|Call Proclet|{2.name}".format(" "*36, " "*15, m)
 
 
 if __name__ == "__main__":
@@ -257,5 +265,9 @@ if __name__ == "__main__":
     #while a.pending:
     for n in range(100):
         for i in a.run(order):
-            logging.info(i)
+            try:
+                logging.info(a.report(i))
+            except TypeError:
+                print(a.lookup)
+                print(i, file=sys.stderr)
     logging.info(next(iter(Package.delivery.values())).attempts)
