@@ -70,6 +70,9 @@ class Order(Proclet):
         yield
 
     def pro_split(self, this, **kwargs):
+        if len(self.pending) == len(self.items) + 1:
+            yield
+
         durables, perishables = [], []
         groups = itertools.groupby(self.items, key=operator.attrgetter("product"))
         for p, g in groups:
@@ -78,8 +81,8 @@ class Order(Proclet):
             else:
                 perishables.extend(g)
 
-        yield Package("Durables", durables, channels=self.channels)
-        yield Package("Perishables", perishables, channels=self.channels)
+        yield Package("Box of durables", durables, channels=self.channels)
+        yield Package("Box of perishables", perishables, channels=self.channels)
         yield
 
     def pro_notify(self, this, **kwargs):
@@ -87,7 +90,8 @@ class Order(Proclet):
             if p is self: continue
             yield from self.channels["orders"].send(
                 sender=self.uid, group=[p.uid], connect=self.uid,
-                action=Init.request, context=set(self.pending.keys())
+                action=Init.request, context=set(self.pending.keys()),
+                content="{0} item{1}".format(len(p.contents), "s" if len(p.contents) > 1 else "")
             )
         yield
 
@@ -130,10 +134,10 @@ class Package(Proclet):
             self.delivery[rv.uid] = rv
             yield rv
 
-        yield from self.channels["logistics"].send(
-            sender=self.uid, group=[next(iter(self.delivery.keys()))], connect=self.uid,
-            action=Init.request, context={i.uid for i in self.contents}, content=self.contents
-        )
+            yield from self.channels["logistics"].send(
+                sender=self.uid, group=[next(iter(self.delivery.keys()))], connect=self.uid,
+                action=Init.request, context={i.uid for i in self.contents}, content=self.contents
+            )
         yield
 
     def pro_retry(self, this, **kwargs):
@@ -177,6 +181,7 @@ class Delivery(Proclet):
         messages = list(self.channels["logistics"].respond(
             self, this,
             actions={Init.request: Init.promise},
+            contents={Init.request: "Loading"},
         ))
         if not messages: return
 
@@ -193,6 +198,7 @@ class Delivery(Proclet):
                 yield from self.channels["logistics"].send(
                     sender=self.uid, group=[k],
                     action=Init.counter, context={k},
+                    content=v,
                 )
                 self.attempts[k] += 1
         yield
@@ -204,6 +210,7 @@ class Delivery(Proclet):
                 yield from self.channels["logistics"].send(
                     sender=self.uid, group=[k],
                     action=Exit.deliver, context={k},
+                    content=v,
                 )
                 self.attempts[k] += 1
         yield
@@ -214,6 +221,7 @@ class Delivery(Proclet):
                 yield from self.channels["logistics"].send(
                     sender=self.uid, group=[k],
                     action=Exit.abandon, context={k},
+                    content=v,
                 )
         yield
 
@@ -254,9 +262,9 @@ class Account:
         try:
             source = self.lookup[m.sender]
             connect = getattr(m.connect, "hex", "")
-            return f"{connect:>36}|{source.name}|{m.action:<12}|{m.content}"
+            return f"{connect:>36}|{source.name:^20}|{m.action:<12}|{m.content}"
         except AttributeError:
-            return "{0}|{1}|Call Proclet|{2.name}".format(" "*36, " "*15, m)
+            return "{0}|{1}|Call Proclet|{2.name}".format(" "*36, " "*20, m)
         except TypeError:
             print(m, file=sys.stderr)
             raise
@@ -269,7 +277,8 @@ if __name__ == "__main__":
     order = a.order(items)
 
     #while a.pending:
-    for n in range(10):
+    logging.info(a.report(order))
+    for n in range(20):
         for i in a.run(order):
             logging.info(a.report(i))
     logging.info(next(iter(Package.delivery.values())).attempts)
