@@ -52,9 +52,9 @@ class Item:
 
 class Order(Proclet):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.items = args
+    def __init__(self, name, items, *args, **kwargs):
+        super().__init__(name, *args, **kwargs)
+        self.items = items
 
     @property
     def dag(self):
@@ -78,8 +78,8 @@ class Order(Proclet):
             else:
                 perishables.extend(g)
 
-        yield Package(*durables, channels=self.channels)
-        yield Package(*perishables, channels=self.channels)
+        yield Package("Durables", durables, channels=self.channels)
+        yield Package("Perishables", perishables, channels=self.channels)
         yield
 
     def pro_notify(self, this, **kwargs):
@@ -99,9 +99,9 @@ class Package(Proclet):
 
     delivery = dict()
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.contents = args
+    def __init__(self, name, contents, *args, **kwargs):
+        super().__init__(name, *args, **kwargs)
+        self.contents = contents
 
     @property
     def dag(self):
@@ -206,7 +206,6 @@ class Delivery(Proclet):
                     action=Exit.deliver, context={k},
                 )
                 self.attempts[k] += 1
-        print("pro_deliver")
         yield
 
     def pro_undeliver(self, this, **kwargs):
@@ -239,7 +238,7 @@ class Account:
         self.lookup = {}
 
     def order(self, items):
-        rv = Order(*items, channels=self.channels)
+        rv = Order("Order", items, channels=self.channels)
         self.orders[rv.uid] =  rv
         return rv
 
@@ -254,11 +253,13 @@ class Account:
     def report(self, m):
         try:
             source = self.lookup[m.sender]
-            return "{connect!r:>36}|{source.name:15}|{action:<12}|{content}".format(source=source, **vars(m))
+            connect = getattr(m.connect, "hex", "")
+            return f"{connect:>36}|{source.name}|{m.action:<12}|{m.content}"
         except AttributeError:
             return "{0}|{1}|Call Proclet|{2.name}".format(" "*36, " "*15, m)
         except TypeError:
             print(m, file=sys.stderr)
+            raise
 
 
 if __name__ == "__main__":
