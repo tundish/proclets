@@ -134,10 +134,11 @@ class Package(Proclet):
             self.delivery[rv.uid] = rv
             yield rv
 
-        yield from self.channels["logistics"].send(
-            sender=self.uid, group=[next(iter(self.delivery.keys()))], connect=self.uid,
-            action=Init.request, context={i.uid for i in self.contents}, content=self.contents
-        )
+        if not self.channels["logistics"].store[self.uid]:
+            yield from self.channels["logistics"].send(
+                sender=self.uid, group=[next(iter(self.delivery.keys()))], connect=self.uid,
+                action=Init.request, context={i.uid for i in self.contents}, content=self.contents
+            )
         yield
 
     def pro_retry(self, this, **kwargs):
@@ -156,7 +157,11 @@ class Package(Proclet):
         yield
 
     def pro_undeliver(self, this, **kwargs):
-        yield
+        yield from self.channels["logistics"].respond(
+            self, this,
+            actions={Exit.abandon: None},
+            contents={Exit.abandon: "Delivery failed"},
+        )
 
     def pro_return(self, this, **kwargs):
         yield
@@ -207,7 +212,7 @@ class Delivery(Proclet):
                 yield from self.channels["logistics"].send(
                     sender=self.uid, group=[k],
                     action=Init.counter, context={k},
-                    content=v,
+                    connect=k, content=v,
                 )
                 self.attempts[k] += 1
         yield
@@ -219,7 +224,7 @@ class Delivery(Proclet):
                 yield from self.channels["logistics"].send(
                     sender=self.uid, group=[k],
                     action=Exit.deliver, context={k},
-                    content=v,
+                    connect=k, content=v,
                 )
                 self.attempts[k] += 1
         yield
@@ -230,9 +235,8 @@ class Delivery(Proclet):
                 yield from self.channels["logistics"].send(
                     sender=self.uid, group=[k],
                     action=Exit.abandon, context={k},
-                    content=v,
+                    connect=k, content=v,
                 )
-        print(self.attempts)
         yield
 
     def pro_next(self, this, **kwargs):
