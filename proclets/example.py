@@ -198,7 +198,6 @@ class Delivery(Proclet):
             for p in m.group:
                 self.attempts[p] = 0
         yield from messages
-        yield
 
     def pro_retry(self, this, **kwargs):
         for n, (k, v) in enumerate(self.attempts.items()):
@@ -232,6 +231,7 @@ class Delivery(Proclet):
                     action=Exit.abandon, context={k},
                     content=v,
                 )
+        print(self.attempts)
         yield
 
     def pro_next(self, this, **kwargs):
