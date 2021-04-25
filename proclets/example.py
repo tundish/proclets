@@ -198,6 +198,7 @@ class Delivery(Proclet):
             for p in m.group:
                 self.attempts[p] = 0
         yield from messages
+        yield
 
     def pro_retry(self, this, **kwargs):
         for n, (k, v) in enumerate(self.attempts.items()):
@@ -236,7 +237,6 @@ class Delivery(Proclet):
 
     def pro_next(self, this, **kwargs):
         # Stub method for compatibility with Fahland
-        print(self.marking)
         yield
 
     def pro_finish(self, this, **kwargs):
@@ -245,6 +245,7 @@ class Delivery(Proclet):
             actions={Exit.confirm: Exit.confirm},
         ))
         yield from messages
+        yield
 
 class Back(Proclet): pass
 
