@@ -178,13 +178,16 @@ class Delivery(Proclet):
             self, this,
             actions={Init.request: Init.promise},
         ))
+        if not messages: return
+
         for m in messages:
             for p in m.group:
                 self.attempts[p] = 0
         yield from messages
+        yield
 
     def pro_retry(self, this, **kwargs):
-        for n, (k, v) in enumerate(self.attempts.values()):
+        for n, (k, v) in enumerate(self.attempts.items()):
             if n:
                 # Perishables miss their delivery
                 yield from self.channels["logistics"].send(
@@ -195,7 +198,7 @@ class Delivery(Proclet):
         yield
 
     def pro_deliver(self, this, **kwargs):
-        for n, (k, v) in enumerate(self.attempts.values()):
+        for n, (k, v) in enumerate(self.attempts.items()):
             if not n:
                 # Durables make their delivery
                 yield from self.channels["logistics"].send(
@@ -203,10 +206,11 @@ class Delivery(Proclet):
                     action=Exit.deliver, context={k},
                 )
                 self.attempts[k] += 1
+        print("pro_deliver")
         yield
 
     def pro_undeliver(self, this, **kwargs):
-        for k, v in self.attempts.values():
+        for k, v in self.attempts.items():
             if not self.complete[k] and v > 3:
                 yield from self.channels["logistics"].send(
                     sender=self.uid, group=[k],
