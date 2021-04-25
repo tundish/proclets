@@ -130,7 +130,7 @@ class Package(Proclet):
 
     def pro_load(self, this, **kwargs):
         if not self.delivery:
-            rv = Delivery("Royal Mail", channels=self.channels)
+            rv = Delivery("Delivery", channels=self.channels)
             self.delivery[rv.uid] = rv
             yield rv
 
@@ -212,7 +212,7 @@ class Delivery(Proclet):
                 yield from self.channels["logistics"].send(
                     sender=self.uid, group=[k],
                     action=Init.counter, context={k},
-                    connect=k, content=v,
+                    connect=k, content="Attempt {0}".format(v),
                 )
                 self.attempts[k] += 1
         yield
@@ -224,9 +224,10 @@ class Delivery(Proclet):
                 yield from self.channels["logistics"].send(
                     sender=self.uid, group=[k],
                     action=Exit.deliver, context={k},
-                    connect=k, content=v,
+                    connect=k, content="Attempt {0}".format(v),
                 )
                 self.attempts[k] += 1
+                self.complete[k] = True
         yield
 
     def pro_undeliver(self, this, **kwargs):
