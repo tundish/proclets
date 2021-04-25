@@ -134,10 +134,10 @@ class Package(Proclet):
             self.delivery[rv.uid] = rv
             yield rv
 
-            yield from self.channels["logistics"].send(
-                sender=self.uid, group=[next(iter(self.delivery.keys()))], connect=self.uid,
-                action=Init.request, context={i.uid for i in self.contents}, content=self.contents
-            )
+        yield from self.channels["logistics"].send(
+            sender=self.uid, group=[next(iter(self.delivery.keys()))], connect=self.uid,
+            action=Init.request, context={i.uid for i in self.contents}, content=self.contents
+        )
         yield
 
     def pro_retry(self, this, **kwargs):
@@ -197,7 +197,7 @@ class Delivery(Proclet):
         for m in messages:
             for p in m.group:
                 self.attempts[p] = 0
-        yield from messages
+                yield m
         yield
 
     def pro_retry(self, this, **kwargs):
