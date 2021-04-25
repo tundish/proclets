@@ -141,9 +141,18 @@ class Package(Proclet):
         yield
 
     def pro_retry(self, this, **kwargs):
-        yield
+        yield from self.channels["logistics"].respond(
+            self, this,
+            actions={Init.counter: None},
+            contents={Init.counter: "Retrying"},
+        )
 
     def pro_deliver(self, this, **kwargs):
+        yield from self.channels["logistics"].respond(
+            self, this,
+            actions={Exit.deliver: None},
+            contents={Exit.deliver: "Delivered"},
+        )
         yield
 
     def pro_undeliver(self, this, **kwargs):
@@ -227,6 +236,7 @@ class Delivery(Proclet):
 
     def pro_next(self, this, **kwargs):
         # Stub method for compatibility with Fahland
+        print(self.marking)
         yield
 
     def pro_finish(self, this, **kwargs):

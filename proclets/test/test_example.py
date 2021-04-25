@@ -31,36 +31,16 @@ from proclets.types import Performative
 class ExampleTests(unittest.TestCase):
 
     def test_dag(self):
-        dag = Order(None).dag
-        arcs = Order(None).arcs
-        i_nodes = Order(None).i_nodes
+        dag = Order(None, []).dag
+        arcs = Order(None, []).arcs
+        i_nodes = Order(None, []).i_nodes
         self.assertEqual(4, len(dag), dag)
 
-        dag = Package(None).dag
+        dag = Package(None, []).dag
         self.assertEqual(8, len(dag), dag)
 
-        dag = Delivery(None).dag
+        dag = Delivery(None, []).dag
         self.assertEqual(6, len(dag), dag)
 
-        dag = Back(None).dag
+        dag = Back(None, []).dag
         self.assertEqual(3, len(dag), dag)
-
-    def test_order(self):
-        order = Order(*list(Product))
-        self.assertEqual(3, len(order.args))
-        self.assertFalse(order.items)
-        for n in range(16):
-            with self.subTest(n=n):
-                rv = list(order())
-                self.assertTrue(order.items)
-                if not n:
-                    self.assertFalse(rv, rv)
-                else:
-                    self.assertTrue(rv)
-                    for p in order.pending.values():
-                        print(p, p.marking)
-
-                self.assertTrue(
-                    all(isinstance(i, (Performative, Proclet)) for i in rv if i is not None)
-                )
-
