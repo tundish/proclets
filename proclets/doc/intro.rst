@@ -24,8 +24,8 @@ A fusion of the two is described in
 It shows how to constrain Petri Nets so they behave predictably enough to be a model for business workflows, and it
 adds a UML-like relational notation to describe where discrete processes synchronise together.
 
-This `proclets` package provides the classes described in that paper.
+This **proclets** package provides the classes described in that paper.
 
-So you can sketch out a process in pencil as a Proclet and then implement it in Python code without leaving that
-conceptual framework.
+This means you can sketch out a process in pencil as a Proclet and then implement it in Python code
+without leaving that conceptual framework.
 Hopefully this makes it a simpler job to verify that your code accurately implements the model.

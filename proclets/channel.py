@@ -43,12 +43,20 @@ class Channel:
         self.store = defaultdict(functools.partial(deque, maxlen=maxlen))
         self.ready = defaultdict(Counter)
 
-    def qsize(self, uid, party=None):
+    def qsize(self, uid, party=None) -> int:
+        """
+        Return the number of items in the channel.
+
+        """
         if party not in self.ready[uid]:
             self.ready[uid][party] = len(self.store[uid])
         return self.ready[uid][party]
 
-    def empty(self, uid, party=None):
+    def empty(self, uid, party=None) -> bool:
+        """
+        Return True if the channel is empty, False otherwise.
+
+        """
         return self.qsize(uid, party=party) == 0
 
     def full(self, uid, party=None):
