@@ -149,6 +149,13 @@ class Package(Proclet):
         )
 
     def pro_deliver(self, this, **kwargs):
+        retries = [i for i in self.channels["logistics"].store[self.uid] if i.action == Init.counter]
+        print("Retries :", len(retries))
+        if len(retries) >= 3:
+            yield from self.channels["logistics"].send(
+                sender=self.uid, group=[next(iter(self.delivery.keys()))], connect=self.uid,
+                action=Init.decline, context={i.uid for i in self.contents}, content=self.contents
+            )
         yield from self.channels["logistics"].respond(
             self, this,
             actions={Exit.deliver: None},
@@ -157,6 +164,7 @@ class Package(Proclet):
         yield
 
     def pro_undeliver(self, this, **kwargs):
+        # Stub method for compatibility with Fahland
         yield from self.channels["logistics"].respond(
             self, this,
             actions={Exit.abandon: None},
@@ -201,13 +209,13 @@ class Delivery(Proclet):
 
         for m in messages:
             for p in m.group:
-                self.attempts[p] = 0
+                self.attempts[p] = 1
                 yield m
         yield
 
     def pro_retry(self, this, **kwargs):
         for n, (k, v) in enumerate(self.attempts.items()):
-            if n:
+            if n and v < 4:
                 # Perishables miss their delivery
                 yield from self.channels["logistics"].send(
                     sender=self.uid, group=[k],
@@ -224,7 +232,7 @@ class Delivery(Proclet):
                 yield from self.channels["logistics"].send(
                     sender=self.uid, group=[k],
                     action=Exit.deliver, context={k},
-                    connect=k, content="Attempt {0}".format(v),
+                    connect=k, content="Delivered on attempt {0}".format(v),
                 )
                 self.attempts[k] += 1
                 self.complete[k] = True
@@ -232,11 +240,12 @@ class Delivery(Proclet):
 
     def pro_undeliver(self, this, **kwargs):
         for k, v in self.attempts.items():
+            print("VVVVV", v)
             if not self.complete[k] and v > 3:
                 yield from self.channels["logistics"].send(
                     sender=self.uid, group=[k],
                     action=Exit.abandon, context={k},
-                    connect=k, content=v,
+                    connect=k, content="Failed after {0} attempts".format(v),
                 )
         yield
 
@@ -294,7 +303,7 @@ if __name__ == "__main__":
 
     #while a.pending:
     logging.info(a.report(order))
-    for n in range(20):
+    for n in range(30):
         for i in a.run(order):
             logging.info(a.report(i))
-    logging.info(next(iter(Package.delivery.values())).attempts)
+    # logging.info(next(iter(Package.delivery.values())).attempts)

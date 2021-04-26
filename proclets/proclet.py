@@ -69,7 +69,6 @@ class Proclet:
                 continue
 
             n = 1
-            marking = set()
             try:
                 fn = next(fn for fn in proc.activated)
             except StopIteration:

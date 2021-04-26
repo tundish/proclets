@@ -23,20 +23,14 @@ from proclets.channel import Channel
 from proclets.types import Performative
 
 
-class PerformativeTests(unittest.TestCase):
-
-    @unittest.skip("Not yet")
-    def test_performative(self):
-        perf = Performative()
-        self.fail(perf)
-
-
 class ChannelTests(unittest.TestCase):
 
     def test_api(self):
         c = Channel()
         self.assertTrue(c.empty(0))
+        self.assertTrue(c.empty(0, party=1))
         self.assertFalse(c.full(0))
+        self.assertFalse(c.full(0, party=1))
         self.assertRaises(queue.Empty, c.get, 0)
 
     def test_put_plain_object(self):
@@ -68,9 +62,14 @@ class ChannelTests(unittest.TestCase):
         p = Performative(group=[0])
         self.assertEqual(1, c.put(p))
         self.assertFalse(c.empty(0))
+
         rv = c.get(0)
         self.assertEqual(p, rv)
         self.assertTrue(c.empty(0))
+
+        rv = c.get(0, party=1)
+        self.assertEqual(p, rv)
+        self.assertTrue(c.empty(0, party=1))
 
     def test_get_many(self):
         c = Channel()
@@ -81,5 +80,10 @@ class ChannelTests(unittest.TestCase):
         for n, p in enumerate(data):
             with self.subTest(n=n, p=p):
                 self.assertFalse(c.empty(0))
+                self.assertFalse(c.empty(0, party=1), c.ready)
                 self.assertEqual(p, c.get(0))
+                self.assertEqual(p, c.get(0, party=1))
+
         self.assertTrue(c.empty(0))
+        self.assertTrue(c.empty(0, party=1))
+        self.assertFalse(c.empty(0, party=2))

@@ -24,7 +24,6 @@ import enum
 import functools
 import queue
 import time
-from typing import Generator
 import uuid
 
 from proclets.proclet import Proclet
@@ -42,15 +41,17 @@ class Channel:
     """
     def __init__(self, maxlen=None):
         self.store = defaultdict(functools.partial(deque, maxlen=maxlen))
-        self.ready = Counter()
+        self.ready = defaultdict(Counter)
 
-    def qsize(self, uid):
-        return self.ready[uid]
+    def qsize(self, uid, party=None):
+        if party not in self.ready[uid]:
+            self.ready[uid][party] = len(self.store[uid])
+        return self.ready[uid][party]
 
-    def empty(self, uid):
-        return self.ready[uid] == 0
+    def empty(self, uid, party=None):
+        return self.qsize(uid, party=party) == 0
 
-    def full(self, uid):
+    def full(self, uid, party=None):
         return False
 
     def put(self, item: Performative):
@@ -59,16 +60,18 @@ class Channel:
             return
 
         for uid in item.group:
-            self.ready[uid] += 1
+            for party in self.ready[uid] or [None]:
+                self.ready[uid][party] += 1
             self.store[uid].appendleft(item)
             n += 1
         return n
 
-    def get(self, uid):
-        if not self.ready[uid]:
+    def get(self, uid, party=None):
+        if self.empty(uid, party=party):
             raise queue.Empty
-        self.ready[uid] -= 1
-        item = self.store[uid][self.ready[uid]]
+
+        self.ready[uid][party] -= 1
+        item = self.store[uid][self.ready[uid][party]]
         return item
 
     def send(self, **kwargs):
@@ -79,12 +82,12 @@ class Channel:
             yield item
 
     def respond(
-        self, p: Proclet, fn: Generator,
-        actions: dict, contents: dict=None, context: set=None,
+        self, p: Proclet, party=None,
+        actions: dict=None, contents: dict=None, context: set=None,
         ):
         while not self.empty(p.uid):
             m = self.get(p.uid)
-            action = actions.get(m.action)
+            action = actions and actions.get(m.action)
             content = contents and contents.get(m.action) or p.marking
             context = m.context and m.context.copy().union(context or set())
             if action is not None:
