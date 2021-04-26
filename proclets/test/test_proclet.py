@@ -53,7 +53,7 @@ class Control(Proclet):
             yield self.tasks[this]
 
         yield from self.uplink.respond(
-            self, this,
+            self,
             actions={Init.promise: Init.confirm, Exit.deliver: None},
             contents={
                 Init.promise: "Launch initiated",
@@ -70,7 +70,7 @@ class Control(Proclet):
             yield self.tasks[this]
 
         yield from self.uplink.respond(
-            self, this,
+            self,
             actions={Init.promise: Init.confirm, Exit.deliver: None},
             contents={
                 Init.promise: "Copy your separation",
@@ -121,7 +121,7 @@ class Vehicle(Proclet):
             try:
                 m = next(
                     self.uplink.respond(
-                        self, this,
+                        self,
                         actions={Init.request: Init.promise},
                         contents={Init.request: "We are go for launch"},
                     )
@@ -143,7 +143,7 @@ class Vehicle(Proclet):
             try:
                 m = next(
                     self.uplink.respond(
-                        self, this,
+                        self,
                         actions={Init.request: Init.promise},
                         contents={Init.request: "Separation initiated"},
                     )
@@ -213,7 +213,7 @@ class Recovery(Proclet):
         try:
             m = next(
                 self.channels.get("vhf").respond(
-                    self, this,
+                    self,
                     actions={Init.request: Init.promise},
                     contents={Init.request: "On our way"},
                 )

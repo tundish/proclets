@@ -85,8 +85,8 @@ class Channel:
         self, p: Proclet, party=None,
         actions: dict=None, contents: dict=None, context: set=None,
         ):
-        while not self.empty(p.uid):
-            m = self.get(p.uid)
+        while not self.empty(p.uid, party):
+            m = self.get(p.uid, party)
             action = actions and actions.get(m.action)
             content = contents and contents.get(m.action) or p.marking
             context = m.context and m.context.copy().union(context or set())

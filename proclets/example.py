@@ -142,20 +142,16 @@ class Package(Proclet):
         yield
 
     def pro_retry(self, this, **kwargs):
-        yield from self.channels["logistics"].respond(
-            self, this,
-            actions={Init.counter: None},
-            contents={Init.counter: "Retrying"},
-        )
-
-    def pro_deliver(self, this, **kwargs):
         retries = [i for i in self.channels["logistics"].store[self.uid] if i.action == Init.counter]
-        print("Retries :", len(retries))
-        if len(retries) >= 3:
+        if len(retries) >= 3 and not any(
+            i.action == Init.abandon for i in self.channels["logistics"].store[self.uid]
+        ):
             yield from self.channels["logistics"].send(
                 sender=self.uid, group=[next(iter(self.delivery.keys()))], connect=self.uid,
                 action=Init.decline, context={i.uid for i in self.contents}, content=self.contents
             )
+
+    def pro_deliver(self, this, **kwargs):
         yield from self.channels["logistics"].respond(
             self, this,
             actions={Exit.deliver: None},
@@ -165,11 +161,7 @@ class Package(Proclet):
 
     def pro_undeliver(self, this, **kwargs):
         # Stub method for compatibility with Fahland
-        yield from self.channels["logistics"].respond(
-            self, this,
-            actions={Exit.abandon: None},
-            contents={Exit.abandon: "Delivery failed"},
-        )
+        yield
 
     def pro_return(self, this, **kwargs):
         yield
@@ -215,7 +207,7 @@ class Delivery(Proclet):
 
     def pro_retry(self, this, **kwargs):
         for n, (k, v) in enumerate(self.attempts.items()):
-            if n and v < 4:
+            if n and not self.complete[k]:
                 # Perishables miss their delivery
                 yield from self.channels["logistics"].send(
                     sender=self.uid, group=[k],
@@ -227,7 +219,7 @@ class Delivery(Proclet):
 
     def pro_deliver(self, this, **kwargs):
         for n, (k, v) in enumerate(self.attempts.items()):
-            if not n:
+            if not n and not self.complete[k]:
                 # Durables make their delivery
                 yield from self.channels["logistics"].send(
                     sender=self.uid, group=[k],
@@ -239,18 +231,19 @@ class Delivery(Proclet):
         yield
 
     def pro_undeliver(self, this, **kwargs):
-        for k, v in self.attempts.items():
-            print("VVVVV", v)
-            if not self.complete[k] and v > 3:
-                yield from self.channels["logistics"].send(
-                    sender=self.uid, group=[k],
-                    action=Exit.abandon, context={k},
-                    connect=k, content="Failed after {0} attempts".format(v),
-                )
+        # Stub method for compatibility with Fahland
         yield
 
     def pro_next(self, this, **kwargs):
         # Stub method for compatibility with Fahland
+        self.complete.update(
+            {i.sender: True for i in self.channels["logistics"].store[self.uid] if i.action == Init.decline}
+        )
+        yield from self.channels["logistics"].respond(
+            self, this,
+            actions={Init.decline: Init.abandon},
+            contents={Init.decline: "Delivery cancelled"},
+        )
         yield
 
     def pro_finish(self, this, **kwargs):
@@ -303,7 +296,7 @@ if __name__ == "__main__":
 
     #while a.pending:
     logging.info(a.report(order))
-    for n in range(30):
+    for n in range(12):
         for i in a.run(order):
             logging.info(a.report(i))
     # logging.info(next(iter(Package.delivery.values())).attempts)
