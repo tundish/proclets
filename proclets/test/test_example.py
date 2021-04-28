@@ -80,11 +80,17 @@ class DeliveryTests(unittest.TestCase):
         # Create a Package proclet with pro_load enabled
         p = DevPackage.create([], channels=channels, marking={1})
         self.assertEqual("DevPackage_001", p.name)
+
+        # First run creates delivery
         self.assertEqual(1, len(p.pending))
         run = list(p())
-        print(run)
         self.assertEqual(2, len(p.pending))
         self.assertIsInstance(next(reversed(p.pending.values())), Delivery)
+        self.assertIsInstance(run[0], Delivery)
+
+        # Second run syncs on pro_load
+        run = list(p())
+        print(run)
 
 class ExampleTests(unittest.TestCase):
 
