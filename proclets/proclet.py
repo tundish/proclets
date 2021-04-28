@@ -39,9 +39,9 @@ class Proclet:
     _n = 0
 
     @classmethod
-    def create(cls, *args, fmt="{0}{0._n}", **kwargs):
+    def create(cls, *args, fmt="{cls.__name__}_{cls._n:03}", **kwargs):
         cls._n += 1
-        name = fmt.format(cls)
+        name = fmt.format(cls=cls)
         return cls(name, *args, **kwargs)
 
     @staticmethod
@@ -78,7 +78,7 @@ class Proclet:
 
             n = 1
             try:
-                fn = next(fn for fn in proc.activated)
+                fn = next(fn for fn in proc.enabled)
             except StopIteration:
                 return
 
@@ -102,7 +102,7 @@ class Proclet:
         return {}
 
     @property
-    def activated(self):
+    def enabled(self):
         return [self.arcs[i][1] for i in sorted(self.marking)]
 
     @functools.cached_property

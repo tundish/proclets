@@ -55,10 +55,9 @@ class DevPackage(Proclet):
         yield
 
     def pro_load(self, this, **kwargs):
-        yield Delivery(
-            "Launch vehicle",
-            channels={"beacon": self.beacon}, group=self.group.copy(),
-            marking=self.i_nodes[self.pro_reentry]
+        yield Delivery.create(
+            channels=self.channels,
+            group=self.group.copy(),
         )
         return
         if not self.delivery:
@@ -78,13 +77,14 @@ class DeliveryTests(unittest.TestCase):
 
     def test_deliver(self):
         channels = {"orders": Channel(), "logistics": Channel()}
+        # Create a Package proclet with pro_load enabled
         p = DevPackage.create([], channels=channels, marking={1})
-        print(p.name)
+        self.assertEqual("DevPackage_001", p.name)
         self.assertEqual(1, len(p.pending))
         run = list(p())
         print(run)
         self.assertEqual(2, len(p.pending))
-        self.assertIsInstance(next(reversed(p.pending.values()), Delivery))
+        self.assertIsInstance(next(reversed(p.pending.values())), Delivery)
 
 class ExampleTests(unittest.TestCase):
 

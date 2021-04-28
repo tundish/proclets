@@ -269,29 +269,29 @@ class ProcletTests(unittest.TestCase):
                         print(self.report(item, lookup), file=sys.stderr)
 
                 if n == 0:
-                    self.assertIn(c.pro_launch, c.activated)
-                    self.assertIn(v.pro_launch, v.activated)
+                    self.assertIn(c.pro_launch, c.enabled)
+                    self.assertIn(v.pro_launch, v.enabled)
                 elif n == 2:
-                    self.assertIn(c.pro_separation, c.activated)
-                    self.assertIn(v.pro_separation, v.activated)
+                    self.assertIn(c.pro_separation, c.enabled)
+                    self.assertIn(v.pro_separation, v.enabled)
                 elif n == 4:
-                    self.assertIn(c.pro_separation, c.activated)
-                    self.assertIn(v.pro_orbit, v.activated)
+                    self.assertIn(c.pro_separation, c.enabled)
+                    self.assertIn(v.pro_orbit, v.enabled)
                 elif n == 5:
-                    self.assertIn(c.pro_recovery, c.activated)
-                    self.assertIn(v.pro_orbit, v.activated)
+                    self.assertIn(c.pro_recovery, c.enabled)
+                    self.assertIn(v.pro_orbit, v.enabled)
                 elif n == 7:
-                    self.assertIn(c.pro_recovery, c.activated)
-                    self.assertIn(v.pro_orbit, v.activated)
+                    self.assertIn(c.pro_recovery, c.enabled)
+                    self.assertIn(v.pro_orbit, v.enabled)
                 elif n == 8:
-                    self.assertIn(c.pro_recovery, c.activated)
-                    self.assertIn(v.pro_reentry, v.activated)
+                    self.assertIn(c.pro_recovery, c.enabled)
+                    self.assertIn(v.pro_reentry, v.enabled)
                 elif n == 9:
-                    self.assertIn(c.pro_recovery, c.activated)
-                    self.assertIn(v.pro_reentry, v.activated)
+                    self.assertIn(c.pro_recovery, c.enabled)
+                    self.assertIn(v.pro_reentry, v.enabled)
                 elif n == 10:
-                    self.assertIn(c.pro_recovery, c.activated)
-                    self.assertIn(v.pro_recovery, v.activated)
+                    self.assertIn(c.pro_recovery, c.enabled)
+                    self.assertIn(v.pro_recovery, v.enabled)
 
         vehicles = [i for i in lookup.values() if isinstance(i, Vehicle)]
         self.assertEqual(2, len(vehicles))
