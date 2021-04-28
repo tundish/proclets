@@ -175,6 +175,20 @@ class Package(Proclet):
 
 class Delivery(Proclet):
 
+    @classmethod
+    def create(cls, *args, domain=None, fmt="{cls.__name__}_{0:03}", **kwargs):
+        domain = domain or cls.population.values()
+        try:
+            rv = next(i for i in domain if isinstance(i, cls))
+            rv.group.update(kwargs.get("group", set()))
+            return rv
+        except StopIteration:
+            name = fmt.format(len(cls.population) + 1, cls=cls)
+            kwargs["name"] = kwargs.get("name", name)
+            rv = cls(*args, **kwargs)
+            cls.population[rv.uid] = rv
+            return rv
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.attempts = Counter()

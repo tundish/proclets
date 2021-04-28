@@ -25,6 +25,7 @@ import functools
 import queue
 import time
 import uuid
+import weakref
 
 
 class Proclet:
@@ -36,13 +37,15 @@ class Proclet:
 
     """
 
-    _n = 0
+    population = weakref.WeakValueDictionary()
 
     @classmethod
-    def create(cls, *args, fmt="{cls.__name__}_{cls._n:03}", **kwargs):
-        cls._n += 1
-        name = fmt.format(cls=cls)
-        return cls(name, *args, **kwargs)
+    def create(cls, *args, fmt="{cls.__name__}_{0:03}", **kwargs):
+        name = fmt.format(len(cls.population) + 1, cls=cls)
+        kwargs["name"] = kwargs.get("name", name)
+        rv = cls(*args, **kwargs)
+        cls.population[rv.uid] = rv
+        return rv
 
     @staticmethod
     def build_arcs(dag):
@@ -56,8 +59,8 @@ class Proclet:
                 yield n, (k, i)
 
     def __init__(
-        self, name, *args,
-        uid=None, channels=None, group=None,
+        self, *args,
+        uid=None, name=None, channels=None, group=None,
         marking=None, slate=None, tally=None,
     ):
         self.uid = uid or uuid.uuid4()
@@ -68,34 +71,33 @@ class Proclet:
         self.marking = marking or {0}
         self.slate = slate or Counter()
         self.tally = tally or Counter()
-        self.pending = {self.uid: self}
+        self.domain = []
 
     def __call__(self, **kwargs):
-        for proc in list(self.pending.values()):
-            if proc is not self:
-                yield from proc(**kwargs)
-                continue
+        for proc in self.domain:
+            yield from proc(**kwargs)
 
-            n = 1
-            try:
-                fn = next(fn for fn in proc.enabled)
-            except StopIteration:
-                return
+        n = 1
+        try:
+            fn = next(fn for fn in self.enabled)
+        except StopIteration:
+            return
 
-            for obj in fn(fn, **kwargs):
-                if obj is None:
-                    # Transition is complete
-                    proc.marking -= proc.i_nodes[fn]
-                    proc.marking.update(proc.o_nodes[fn])
-                    n = self.slate[fn] = 0
-                elif isinstance(obj, Proclet):
-                    # Transition spawns a new Proclet
-                    self.pending[obj.uid] = obj
-                    yield obj
-                else:
-                    yield obj
-            self.slate[fn] += n
-            self.tally[fn] += 1
+        for obj in fn(fn, **kwargs):
+            if obj is None:
+                # Transition is complete
+                self.marking -= self.i_nodes[fn]
+                self.marking.update(self.o_nodes[fn])
+                n = self.slate[fn] = 0
+            elif isinstance(obj, Proclet):
+                # Transition spawns a new Proclet
+                yield obj
+                if obj not in self.domain:
+                    self.domain.append(obj)
+            else:
+                yield obj
+        self.slate[fn] += n
+        self.tally[fn] += 1
 
     @property
     def dag(self):

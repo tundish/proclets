@@ -30,9 +30,6 @@ from proclets.types import Performative
 
 class DevPackage(Proclet):
 
-    def __init__(self, name, contents, *args, **kwargs):
-        super().__init__(name, *args, **kwargs)
-
     @property
     def dag(self):
         return {
@@ -55,21 +52,17 @@ class DevPackage(Proclet):
         yield
 
     def pro_load(self, this, **kwargs):
-        yield Delivery.create(
+        d = Delivery.create(
+            domain=self.domain,
             channels=self.channels,
-            group=self.group.copy(),
+            group={self.uid},
         )
-        return
-        if not self.delivery:
-            rv = Delivery("Delivery", channels=self.channels)
-            self.delivery[rv.uid] = rv
-            yield rv
+        self.delivery = d.uid
+        yield d
 
-        if not self.channels["logistics"].store[self.uid]:
-            yield from self.channels["logistics"].send(
-                sender=self.uid, group=[next(iter(self.delivery.keys()))], connect=self.uid,
-                action=Init.request, context={i.uid for i in self.contents}, content=self.contents
-            )
+        yield from self.channels["logistics"].send(
+            sender=self.uid, group=[self.delivery], connect=this.__name__,
+        )
         yield
 
 
@@ -82,10 +75,11 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual("DevPackage_001", p.name)
 
         # First run creates delivery
-        self.assertEqual(1, len(p.pending))
+        self.assertEqual(0, len(p.domain))
         run = list(p())
-        self.assertEqual(2, len(p.pending))
-        self.assertIsInstance(next(reversed(p.pending.values())), Delivery)
+        print(run)
+        self.assertEqual(1, len(p.domain))
+        self.assertIsInstance(p.domain[-1], Delivery)
         self.assertIsInstance(run[0], Delivery)
 
         # Second run syncs on pro_load

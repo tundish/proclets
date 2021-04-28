@@ -90,7 +90,7 @@ class Control(Proclet):
         if msg.sender not in self.tasks[this]:
             self.tasks[this].add(msg.sender)
             channels = {k: self.channels[k] for k in ("beacon", "vhf")}
-            r = Recovery("Recovery Team", channels=channels, group={self.uid}, marking={0})
+            r = Recovery.create(name="Recovery Team", channels=channels, group={self.uid}, marking={0})
             yield from self.vhf.send(
                 sender=self.uid, group=[r.uid],
                 action=Init.request, content="Briefing Recovery Team"
@@ -154,8 +154,8 @@ class Vehicle(Proclet):
                 self.tasks[this] = m.connect
                 yield m
         else:
-            yield Vehicle(
-                "Launch vehicle",
+            yield Vehicle.create(
+                name="Launch vehicle",
                 channels={"beacon": self.beacon}, group=self.group.copy(),
                 marking=self.i_nodes[self.pro_reentry]
             )
@@ -248,8 +248,8 @@ class ProcletTests(unittest.TestCase):
 
     def test_flow(self):
         channels = {"uplink": Channel(), "beacon": Channel()}
-        v = Vehicle("Space vehicle", channels=channels)
-        c = Control("Mission control", channels=dict(channels, vhf=Channel()), group={v.uid: v})
+        v = Vehicle.create(name="Space vehicle", channels=channels)
+        c = Control.create(name="Mission control", channels=dict(channels, vhf=Channel()), group={v.uid: v})
         v.group = {c.uid: c}
         lookup = {c.uid: c, v.uid: v}
 
