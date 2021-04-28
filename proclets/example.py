@@ -273,8 +273,8 @@ class Account:
         yield from p()
         for i in getattr(p, "pending", {}).values():
             self.lookup[i.uid] = i
-            if i is not p:
-                yield from self.run(i)
+            #if i is not p:
+            #    yield from self.run(i)
 
     def report(self, m):
         try:
@@ -294,6 +294,7 @@ if __name__ == "__main__":
     items = [Item(product=p, quantity=random.randint(1, 10)) for p in Product]
     order = a.order(items)
 
+    print(*[i.__qualname__ for i in order.dag], sep="\n", file=sys.stderr)
     #while a.pending:
     logging.info(a.report(order))
     for n in range(12):

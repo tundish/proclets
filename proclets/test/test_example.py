@@ -19,6 +19,7 @@
 import enum
 import unittest
 
+from proclets.channel import Channel
 from proclets.example import Order
 from proclets.example import Package
 from proclets.example import Delivery
@@ -27,6 +28,63 @@ from proclets.example import Product
 from proclets.proclet import Proclet
 from proclets.types import Performative
 
+class DevPackage(Proclet):
+
+    def __init__(self, name, contents, *args, **kwargs):
+        super().__init__(name, *args, **kwargs)
+
+    @property
+    def dag(self):
+        return {
+            self.pro_split: [self.pro_load],
+            self.pro_load: [], #[self.pro_retry, self.pro_deliver, self.pro_undeliver],
+            #self.pro_retry: [self.pro_load, self.pro_finish],
+            #self.pro_deliver: [self.pro_bill, self.pro_finish],
+            #self.pro_undeliver: [self.pro_bill, self.pro_return, self.pro_finish],
+            #self.pro_return: [self.pro_bill],
+            #self.pro_bill: [self.pro_bill],
+            #self.pro_finish: [],
+        }
+
+    def pro_split(self, this, **kwargs):
+        yield from self.channels["orders"].respond(
+            self, this,
+            actions={Init.request: Init.promise},
+            contents={Init.request: self.contents},
+        )
+        yield
+
+    def pro_load(self, this, **kwargs):
+        yield Delivery(
+            "Launch vehicle",
+            channels={"beacon": self.beacon}, group=self.group.copy(),
+            marking=self.i_nodes[self.pro_reentry]
+        )
+        return
+        if not self.delivery:
+            rv = Delivery("Delivery", channels=self.channels)
+            self.delivery[rv.uid] = rv
+            yield rv
+
+        if not self.channels["logistics"].store[self.uid]:
+            yield from self.channels["logistics"].send(
+                sender=self.uid, group=[next(iter(self.delivery.keys()))], connect=self.uid,
+                action=Init.request, context={i.uid for i in self.contents}, content=self.contents
+            )
+        yield
+
+
+class DeliveryTests(unittest.TestCase):
+
+    def test_deliver(self):
+        channels = {"orders": Channel(), "logistics": Channel()}
+        p = DevPackage.create([], channels=channels, marking={1})
+        print(p.name)
+        self.assertEqual(1, len(p.pending))
+        run = list(p())
+        print(run)
+        self.assertEqual(2, len(p.pending))
+        self.assertIsInstance(next(reversed(p.pending.values()), Delivery))
 
 class ExampleTests(unittest.TestCase):
 

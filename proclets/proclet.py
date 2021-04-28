@@ -36,6 +36,14 @@ class Proclet:
 
     """
 
+    _n = 0
+
+    @classmethod
+    def create(cls, *args, fmt="{0}{0._n}", **kwargs):
+        cls._n += 1
+        name = fmt.format(cls)
+        return cls(name, *args, **kwargs)
+
     @staticmethod
     def build_arcs(dag):
         rv = defaultdict(set)
