@@ -40,9 +40,10 @@ class DevPackage(Proclet):
     def dag(self):
         return {
             self.pro_split: [self.pro_load],
-            self.pro_load: [self.pro_retry, self.pro_deliver, self.pro_undeliver],
-            self.pro_retry: [self.pro_load, self.pro_finish],
+            #self.pro_load: [self.pro_retry, self.pro_deliver, self.pro_undeliver],
+            self.pro_load: [self.pro_deliver],
             self.pro_deliver: [self.pro_bill, self.pro_finish],
+            self.pro_retry: [self.pro_load, self.pro_finish],
             self.pro_undeliver: [self.pro_bill, self.pro_return, self.pro_finish],
             self.pro_return: [self.pro_bill],
             self.pro_bill: [self.pro_bill],
@@ -54,6 +55,7 @@ class DevPackage(Proclet):
             self, this,
             actions={this.__name__: None},
         )
+        yield
 
     def pro_load(self, this, **kwargs):
         if not self.delivery:
@@ -72,17 +74,20 @@ class DevPackage(Proclet):
 
         yield
 
+    def pro_deliver(self, this, **kwargs):
+        print("pro_deliver")
+        yield from self.channels["logistics"].respond(
+            self, this,
+            actions={this.__name__: None},
+            contents={this.__name__: "Yup"},
+        )
+
     def pro_retry(self, this, **kwargs):
         yield from self.channels["logistics"].respond(
             self, this,
             actions={this.__name__: None},
         )
-
-    def pro_deliver(self, this, **kwargs):
-        yield from self.channels["logistics"].respond(
-            self, this,
-            actions={this.__name__: None},
-        )
+        yield
 
     def pro_undeliver(self, this, **kwargs):
         yield from self.channels["logistics"].respond(

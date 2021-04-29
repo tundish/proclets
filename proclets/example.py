@@ -221,15 +221,6 @@ class Delivery(Proclet):
         yield sync
 
     def pro_retry(self, this, **kwargs):
-        for n, (k, v) in enumerate(self.retries.items()):
-            if n and not self.complete[k]:
-                # Perishables miss their delivery
-                yield from self.channels["logistics"].send(
-                    sender=self.uid, group=[k],
-                    action=Init.counter, context={k},
-                    connect=k, content="Attempt {0}".format(v),
-                )
-                self.attempts[k] += 1
         yield
 
     def pro_deliver(self, this, **kwargs):
@@ -250,23 +241,9 @@ class Delivery(Proclet):
         yield
 
     def pro_next(self, this, **kwargs):
-        # Stub method for compatibility with Fahland
-        self.complete.update(
-            {i.sender: True for i in self.channels["logistics"].store[self.uid] if i.action == Init.decline}
-        )
-        yield from self.channels["logistics"].respond(
-            self, this,
-            actions={Init.decline: Init.abandon},
-            contents={Init.decline: "Delivery cancelled"},
-        )
         yield
 
     def pro_finish(self, this, **kwargs):
-        messages = list(self.channels["logistics"].respond(
-            self, this,
-            actions={Exit.confirm: Exit.confirm},
-        ))
-        yield from messages
         yield
 
 class Back(Proclet): pass
