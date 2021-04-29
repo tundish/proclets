@@ -244,7 +244,11 @@ class Delivery(Proclet):
         yield
 
     def pro_finish(self, this, **kwargs):
-        yield
+        print("pro_finish", *self.channels["logistics"].store[self.uid], sep="\n")
+        if False:
+            yield
+        else:
+            return
 
 class Back(Proclet): pass
 
