@@ -76,7 +76,7 @@ class DevPackage(Proclet):
         yield
 
     def pro_deliver(self, this, **kwargs):
-        #print("pro_deliver", *self.channels["logistics"].store[self.uid], sep="\n")
+        print("pro_deliver", *self.channels["logistics"].store[self.uid], sep="\n")
         try:
             msg = next(self.channels["logistics"].respond(
                 self, this,
@@ -84,9 +84,12 @@ class DevPackage(Proclet):
                 contents={this.__name__: "Yup"},
             ))
         except (StopIteration, queue.Empty):
+            print("Holding...")
             return
         else:
-            yield msg
+            print("Msg : ", msg)
+            if msg:
+                yield msg
 
     def pro_retry(self, this, **kwargs):
         try:
