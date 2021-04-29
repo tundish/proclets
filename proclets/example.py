@@ -25,6 +25,7 @@ from dataclasses import field
 import itertools
 import logging
 import operator
+import queue
 import random
 import sys
 import uuid
@@ -189,10 +190,10 @@ class Delivery(Proclet):
             cls.population[rv.uid] = rv
             return rv
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, capacity=2, **kwargs):
         super().__init__(*args, **kwargs)
+        self.capacity = capacity
         self.attempts = Counter()
-        self.complete = defaultdict(bool)
 
     @property
     def dag(self):
@@ -206,18 +207,18 @@ class Delivery(Proclet):
         }
 
     def pro_load(self, this, **kwargs):
-        messages = list(self.channels["logistics"].respond(
-            self, this,
-            actions={Init.request: Init.promise},
-            contents={Init.request: "Loading"},
-        ))
-        if not messages: return
+        try:
+            sync = next(self.channels["logistics"].respond(
+                self, this, actions={this.__name__: this.__name__},
+            ))
+        except (StopIteration, queue.Empty):
+            yield None
+            return
 
-        for m in messages:
-            for p in m.group:
-                self.attempts[p] = 1
-                yield m
-        yield
+        pkg_uid = sync.group[0]
+        sync.content = f"Loaded package {pkg_uid.hex}"
+        self.attempts[pkg_uid] = 0
+        yield sync
 
     def pro_retry(self, this, **kwargs):
         for n, (k, v) in enumerate(self.attempts.items()):
@@ -232,17 +233,15 @@ class Delivery(Proclet):
         yield
 
     def pro_deliver(self, this, **kwargs):
-        for n, (k, v) in enumerate(self.attempts.items()):
-            if not n and not self.complete[k]:
-                # Durables make their delivery
-                yield from self.channels["logistics"].send(
-                    sender=self.uid, group=[k],
-                    action=Exit.deliver, context={k},
-                    connect=k, content="Delivered on attempt {0}".format(v),
-                )
-                self.attempts[k] += 1
-                self.complete[k] = True
-        yield
+        for pkg_uid in self.attempts:
+            pkg = self.population[pkg_uid]
+            print(pkg.contents)
+
+        yield from self.channels["logistics"].send(
+            sender=self.uid, group=[k],
+            action=Exit.deliver, context={k},
+            connect=k, content="Delivered on attempt {0}".format(v),
+        )
 
     def pro_undeliver(self, this, **kwargs):
         # Stub method for compatibility with Fahland
