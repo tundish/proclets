@@ -193,7 +193,7 @@ class Delivery(Proclet):
     def __init__(self, *args, capacity=2, **kwargs):
         super().__init__(*args, **kwargs)
         self.capacity = capacity
-        self.attempts = Counter()
+        self.retries = Counter()
 
     @property
     def dag(self):
@@ -217,11 +217,11 @@ class Delivery(Proclet):
 
         pkg_uid = sync.group[0]
         sync.content = f"Loaded package {pkg_uid.hex}"
-        self.attempts[pkg_uid] = 0
+        self.retries[pkg_uid] = 0
         yield sync
 
     def pro_retry(self, this, **kwargs):
-        for n, (k, v) in enumerate(self.attempts.items()):
+        for n, (k, v) in enumerate(self.retries.items()):
             if n and not self.complete[k]:
                 # Perishables miss their delivery
                 yield from self.channels["logistics"].send(
@@ -233,15 +233,17 @@ class Delivery(Proclet):
         yield
 
     def pro_deliver(self, this, **kwargs):
-        for pkg_uid in self.attempts:
+        for pkg_uid, n in list(self.retries.items()):
             pkg = self.population[pkg_uid]
-            print(pkg.contents)
+            if 0 in pkg.contents:
 
-        yield from self.channels["logistics"].send(
-            sender=self.uid, group=[k],
-            action=Exit.deliver, context={k},
-            connect=k, content="Delivered on attempt {0}".format(v),
-        )
+                yield from self.channels["logistics"].send(
+                    sender=self.uid, group=[pkg_uid],
+                    action = this.__name__,
+                    content = "Delivered " + (f"after {n} retries" if n else "first time"),
+                )
+                del self.retries[pkg_uid]
+        yield
 
     def pro_undeliver(self, this, **kwargs):
         # Stub method for compatibility with Fahland

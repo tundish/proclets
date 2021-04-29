@@ -118,7 +118,7 @@ class DeliveryTests(unittest.TestCase):
     def test_deliver(self):
         channels = {"orders": Channel(), "logistics": Channel()}
         # Create a Package proclet with pro_load enabled
-        p = DevPackage.create([], channels=channels, marking={1})
+        p = DevPackage.create([0], channels=channels, marking={1})
         self.assertEqual("DevPackage_001", p.name)
 
         # First run creates delivery
@@ -132,9 +132,10 @@ class DeliveryTests(unittest.TestCase):
                     self.assertEqual(1, len(p.domain))
                     self.assertIsInstance(p.domain[0], Delivery)
                     self.assertIsInstance(run[0], Delivery)
-                    self.assertEqual(0, len(p.domain[0].attempts))
+                    self.assertEqual(0, len(p.domain[0].retries))
                 elif n == 1:
-                    self.assertEqual(1, len(p.domain[0].attempts))
+                    self.assertEqual(1, len(p.domain[0].retries))
+
 
 class ExampleTests(unittest.TestCase):
 
