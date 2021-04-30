@@ -89,6 +89,10 @@ class Channel:
         for i in range(sent):
             yield item
 
+    def receive(self, p: Proclet, party=None):
+        while not self.empty(p.uid, party):
+            yield self.get(p.uid, party)
+
     def respond(
         self, p: Proclet, party=None,
         actions: dict=None, contents: dict=None, context: set=None,

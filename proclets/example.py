@@ -202,29 +202,50 @@ class Delivery(Proclet):
             self.pro_retry: [self.pro_next],
             self.pro_deliver: [self.pro_next],
             self.pro_undeliver: [self.pro_next],
-            self.pro_next: [self.pro_retry, self.pro_deliver, self.pro_undeliver, self.pro_finish],
+            self.pro_next: [self.pro_load, self.pro_retry, self.pro_deliver, self.pro_undeliver, self.pro_finish],
             self.pro_finish: [],
         }
 
     def pro_load(self, this, **kwargs):
         try:
-            sync = next(self.channels["logistics"].respond(
-                self, this, actions={this.__name__: this.__name__},
-            ))
-        except (StopIteration, queue.Empty):
+            sync = next(
+                i for i in self.channels["logistics"].receive(self, this)
+                if i.action == this.__name__
+            )
+        except StopIteration:
+            pass
+        else:
+            sync.content = f"Loaded package {sync.sender.hex}"
+            self.retries[sync.sender] = 0
+            sync.sender = self.uid
+            yield sync
+        finally:
             yield None
-            return
-
-        pkg_uid = sync.group[0]
-        sync.content = f"Loaded package {pkg_uid.hex}"
-        self.retries[pkg_uid] = 0
-        yield sync
 
     def pro_retry(self, this, **kwargs):
-        yield
+        try:
+            pkg_uid, n = next(iter(self.retries.items()))
+        except StopIteration:
+            pass
+        else:
+            pkg = self.population[pkg_uid]
+            if 1 in pkg.contents:
+                self.retries[pkg_uid] += 1
+
+                yield from self.channels["logistics"].send(
+                    sender=self.uid, group=[pkg_uid],
+                    action = this.__name__,
+                    content = f"Retry {self.retries[pkg_uid]} for {pkg_uid}",
+                )
+        finally:
+            yield None
 
     def pro_deliver(self, this, **kwargs):
-        for pkg_uid, n in list(self.retries.items()):
+        try:
+            pkg_uid, n = next(iter(self.retries.items()))
+        except StopIteration:
+            pass
+        else:
             pkg = self.population[pkg_uid]
             if 0 in pkg.contents:
 
@@ -234,7 +255,8 @@ class Delivery(Proclet):
                     content = "Delivered " + (f"after {n} retries" if n else "first time"),
                 )
                 del self.retries[pkg_uid]
-        yield
+        finally:
+            yield None
 
     def pro_undeliver(self, this, **kwargs):
         # Stub method for compatibility with Fahland
@@ -244,11 +266,7 @@ class Delivery(Proclet):
         yield
 
     def pro_finish(self, this, **kwargs):
-        print("pro_finish", *self.channels["logistics"].store[self.uid], sep="\n")
-        if False:
-            yield
-        else:
-            return
+        yield
 
 class Back(Proclet): pass
 
