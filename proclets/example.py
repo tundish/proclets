@@ -107,18 +107,22 @@ class Package(Proclet):
         self.contents = contents
         self.luck = random.triangular(0, 1, 3/4) if luck is None else luck
         self.delivery = {}
+        self.back = {}
 
     @property
     def dag(self):
         return {
             self.pro_split: [self.pro_load],
             self.pro_load: [self.pro_retry, self.pro_deliver, self.pro_undeliver],
-            self.pro_deliver: [self.pro_bill, self.pro_finish],
-            self.pro_retry: [self.pro_load, self.pro_finish],
-            self.pro_undeliver: [self.pro_bill, self.pro_return, self.pro_finish],
-            self.pro_return: [self.pro_bill],
-            self.pro_bill: [self.pro_bill],
-            self.pro_finish: [],
+            #self.pro_deliver: [self.pro_bill, self.pro_finish],
+            #self.pro_retry: [self.pro_load, self.pro_finish],
+            #self.pro_undeliver: [self.pro_return, self.pro_bill, self.pro_finish],
+            self.pro_deliver: [self.pro_return],
+            self.pro_retry: [self.pro_return],
+            self.pro_undeliver: [self.pro_return],
+            self.pro_return: [],
+            #self.pro_bill: [],
+            #self.pro_finish: [],
         }
 
     def pro_split(self, this, **kwargs):
@@ -130,7 +134,6 @@ class Package(Proclet):
     def pro_load(self, this, **kwargs):
         if not self.delivery:
             d = Delivery.create(
-                domain=self.domain,
                 channels=self.channels,
                 group={self.uid},
             )
@@ -180,11 +183,18 @@ class Package(Proclet):
             pass
         else:
             self.delivery[next(iter(self.delivery))] = False
-            print(self.delivery)
         finally:
             yield None
 
     def pro_return(self, this, **kwargs):
+        print(self.delivery)
+        if self.delivery and all(i is False for i in self.delivery.values()):
+            b = Back.create(
+                channels=self.channels,
+                group={self.uid},
+            )
+            self.back[b.uid] = None
+            yield b
         yield
 
     def pro_bill(self, this, **kwargs):
@@ -299,7 +309,18 @@ class Delivery(Proclet):
         yield
 
     def pro_finish(self, this, **kwargs):
-        yield
+        try:
+            sync = next(
+                i for i in self.channels["logistics"].receive(self, this)
+                if i.action == this.__name__
+            )
+        except StopIteration:
+            pass
+        else:
+            pass
+            self.delivery[next(iter(self.delivery))] = False
+        finally:
+            yield None
 
 
 class Back(Proclet):
