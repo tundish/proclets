@@ -61,7 +61,7 @@ class Order(Proclet):
             return f"{connect:>36}|{source.name:^20}|{m.action:<14}|{m.content or ''}"
         except AttributeError:
             return "{0}|{1}|Call Proclet  |{2.name}".format(" "*36, " "*20, m)
-        except TypeError:
+        except (KeyError, TypeError):
             print(m, file=sys.stderr)
             raise
 
@@ -94,8 +94,8 @@ class Order(Proclet):
             else:
                 perishables.extend(g)
 
-        yield Package("Box of durables", durables, channels=self.channels)
-        yield Package("Box of perishables", perishables, channels=self.channels)
+        yield Package.create("Box of durables", durables, channels=self.channels)
+        yield Package.create("Box of perishables", perishables, channels=self.channels)
         yield
 
     def pro_notify(self, this, **kwargs):
@@ -388,43 +388,17 @@ class Back(Proclet):
         yield
 
 
-class Account:
-
-    def __init__(self, channels=None):
-        self.channels  = channels or {}
-        self.orders = {}
-
-    def order(self, items):
-        rv = Order("Order", items, channels=self.channels)
-        self.orders[rv.uid] =  rv
-        return rv
-
-    def run(self, p: Proclet):
-        yield from p()
-
-    def report(self, m):
-        try:
-            source = Proclet.population[m.sender]
-            connect = getattr(m.connect, "hex", "")
-            return f"{connect:>36}|{source.name:^20}|{m.action:<12}|{m.content}"
-        except AttributeError:
-            return "{0}|{1}|Call Proclet|{2.name}".format(" "*36, " "*20, m)
-        except TypeError:
-            print(m, file=sys.stderr)
-            raise
-
-
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, style="{", format="{message}")
     #a = Account(channels={"orders": Channel(), "logistics": Channel(), "billing": Channel()})
     channels = {"orders": Channel(), "logistics": Channel(), "billing": Channel()}
     choices = list(Product)
     jobs = [
-        Order([
+        Order.create([
             Item(product=random.choice(choices), quantity=random.randint(1, 6)),
             Item(product=random.choice(choices), quantity=random.randint(1, 6))
         ], channels=channels),
-        Order([
+        Order.create([
             Item(product=random.choice(choices), quantity=random.randint(1, 6)),
             Item(product=random.choice(choices), quantity=random.randint(1, 6))
         ], channels=channels)
@@ -433,4 +407,4 @@ if __name__ == "__main__":
         for j in jobs:
             run = list(j())
             for r in run:
-                print(j.report(r), file=sys.stderr)
+                logging.info(j.report(r))
