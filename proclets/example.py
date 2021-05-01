@@ -117,9 +117,9 @@ class Package(Proclet):
             #self.pro_deliver: [self.pro_bill, self.pro_finish],
             #self.pro_retry: [self.pro_load, self.pro_finish],
             #self.pro_undeliver: [self.pro_return, self.pro_bill, self.pro_finish],
-            self.pro_deliver: [self.pro_return],
-            self.pro_retry: [self.pro_return],
-            self.pro_undeliver: [self.pro_return],
+            self.pro_deliver: [self.pro_load],
+            self.pro_retry: [self.pro_load],
+            self.pro_undeliver: [self.pro_load, self.pro_return],
             self.pro_return: [],
             #self.pro_bill: [],
             #self.pro_finish: [],
@@ -183,11 +183,11 @@ class Package(Proclet):
             pass
         else:
             self.delivery[next(iter(self.delivery))] = False
+            print(self.delivery)
         finally:
             yield None
 
     def pro_return(self, this, **kwargs):
-        print(self.delivery)
         if self.delivery and all(i is False for i in self.delivery.values()):
             b = Back.create(
                 channels=self.channels,
