@@ -38,9 +38,9 @@ class DeliveryTests(unittest.TestCase):
         try:
             source = Proclet.population[m.sender]
             connect = getattr(m.connect, "hex", "")
-            return f"{connect:>36}|{source.name:^20}|{m.action:<12}|{m.content or ''}"
+            return f"{connect:>36}|{source.name:^20}|{m.action:<14}|{m.content or ''}"
         except AttributeError:
-            return "{0}|{1}|Call Proclet|{2.name}".format(" "*36, " "*20, m)
+            return "{0}|{1}|Call Proclet  |{2.name}".format(" "*36, " "*20, m)
         except TypeError:
             print(m, file=sys.stderr)
             raise
@@ -53,7 +53,7 @@ class DeliveryTests(unittest.TestCase):
             Package.create([], luck=1, channels=channels, marking={1})
         ]
 
-        for n in range(12):
+        for n in range(16):
             for p in jobs:
                 with self.subTest(n=n, p=p):
                     if not n:

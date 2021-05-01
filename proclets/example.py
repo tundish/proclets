@@ -209,9 +209,10 @@ class Delivery(Proclet):
             cls.population[rv.uid] = rv
             return rv
 
-    def __init__(self, *args, capacity=2, **kwargs):
+    def __init__(self, *args, capacity=2, limit=3, **kwargs):
         super().__init__(*args, **kwargs)
         self.capacity = capacity
+        self.limit = limit
         self.retries = Counter()
 
     @property
@@ -234,7 +235,7 @@ class Delivery(Proclet):
         except StopIteration:
             pass
         else:
-            sync.content = f"Loaded package {sync.sender.hex}"
+            sync.content = f"Loaded package {sync.sender.hex[:5]}"
             self.retries[sync.sender] = 0
             sync.sender = self.uid
             yield sync
@@ -243,7 +244,7 @@ class Delivery(Proclet):
 
     def pro_retry(self, this, **kwargs):
         try:
-            pkg_uid, n = next(iter(self.retries.items()))
+            n, pkg_uid = next(iter(sorted((v, k) for k, v in self.retries.items() if v < self.limit)))
         except StopIteration:
             pass
         else:
@@ -261,7 +262,7 @@ class Delivery(Proclet):
 
     def pro_deliver(self, this, **kwargs):
         try:
-            pkg_uid, n = next(iter(self.retries.items()))
+            n, pkg_uid = next(iter(sorted((v, k) for k, v in self.retries.items())))
         except StopIteration:
             pass
         else:
@@ -278,8 +279,20 @@ class Delivery(Proclet):
             yield None
 
     def pro_undeliver(self, this, **kwargs):
-        # Stub method for compatibility with Fahland
-        yield
+        try:
+            n, pkg_uid = next(iter(sorted((v, k) for k, v in self.retries.items() if v == self.limit)))
+        except StopIteration:
+            pass
+        else:
+            pkg = self.population[pkg_uid]
+            yield from self.channels["logistics"].send(
+                sender=self.uid, group=[pkg_uid],
+                action = this.__name__,
+                content = f"Failed to deliver {pkg_uid.hex[:5]}",
+            )
+            del self.retries[pkg_uid]
+        finally:
+            yield None
 
     def pro_next(self, this, **kwargs):
         yield
