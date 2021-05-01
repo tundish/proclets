@@ -102,9 +102,10 @@ class Order(Proclet):
 
 class Package(Proclet):
 
-    def __init__(self, contents, *args, **kwargs):
+    def __init__(self, contents, *args, luck=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.contents = contents
+        self.luck = random.triangular(0, 1, 3/4) if luck is None else luck
         self.delivery = None
 
     @property
@@ -153,7 +154,7 @@ class Package(Proclet):
             pass
         else:
             sync.content = f"Package {sync.sender.hex} delivered"
-            self.retries[sync.sender] = 0
+            #self.retries[sync.sender] = 0
             yield sync
         finally:
             yield None
@@ -247,7 +248,7 @@ class Delivery(Proclet):
             pass
         else:
             pkg = self.population[pkg_uid]
-            if 1 in pkg.contents:
+            if random.random() > pkg.luck:
                 self.retries[pkg_uid] += 1
 
                 yield from self.channels["logistics"].send(
@@ -265,12 +266,12 @@ class Delivery(Proclet):
             pass
         else:
             pkg = self.population[pkg_uid]
-            if 0 in pkg.contents:
+            if random.random() < pkg.luck:
 
                 yield from self.channels["logistics"].send(
                     sender=self.uid, group=[pkg_uid],
                     action = this.__name__,
-                    content = "Delivered " + (f"after {n} retries" if n else "first time"),
+                    content = f"Delivered {pkg_uid.hex[:5]} " + (f"after {n} retries" if n else "first time"),
                 )
                 del self.retries[pkg_uid]
         finally:

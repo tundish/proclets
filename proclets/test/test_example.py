@@ -49,8 +49,8 @@ class DeliveryTests(unittest.TestCase):
         channels = {"orders": Channel(), "logistics": Channel()}
         # Create a Package proclet with pro_load enabled
         jobs = [
-            Package.create([0], channels=channels, marking={1}),
-            Package.create([1], channels=channels, marking={1})
+            Package.create([], luck=0, channels=channels, marking={1}),
+            Package.create([], luck=1, channels=channels, marking={1})
         ]
 
         for n in range(12):
