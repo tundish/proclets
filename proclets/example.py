@@ -111,8 +111,7 @@ class Package(Proclet):
     def dag(self):
         return {
             self.pro_split: [self.pro_load],
-            #self.pro_load: [self.pro_retry, self.pro_deliver, self.pro_undeliver],
-            self.pro_load: [self.pro_deliver],
+            self.pro_load: [self.pro_retry, self.pro_deliver, self.pro_undeliver],
             self.pro_deliver: [self.pro_bill, self.pro_finish],
             self.pro_retry: [self.pro_load, self.pro_finish],
             self.pro_undeliver: [self.pro_bill, self.pro_return, self.pro_finish],
@@ -254,7 +253,7 @@ class Delivery(Proclet):
                 yield from self.channels["logistics"].send(
                     sender=self.uid, group=[pkg_uid],
                     action = this.__name__,
-                    content = f"Retry {self.retries[pkg_uid]} for {pkg_uid}",
+                    content = f"Retry {self.retries[pkg_uid]} for {pkg_uid.hex[:5]}",
                 )
         finally:
             yield None
