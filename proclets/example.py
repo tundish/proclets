@@ -71,7 +71,7 @@ class Order(Proclet):
         yield
 
     def pro_split(self, this, **kwargs):
-        if len(self.pending) == len(self.items) + 1:
+        if len(self.domain) == len(self.items) + 1:
             yield
 
         durables, perishables = [], []
@@ -87,17 +87,26 @@ class Order(Proclet):
         yield
 
     def pro_notify(self, this, **kwargs):
-        for p in self.pending.values():
-            if p is self: continue
+        for p in self.domain:
             yield from self.channels["orders"].send(
                 sender=self.uid, group=[p.uid], connect=self.uid,
-                action=Init.request, context=set(self.pending.keys()),
+                action=Init.request, context=set(self.domain),
                 content="{0} item{1}".format(len(p.contents), "s" if len(p.contents) > 1 else "")
             )
         yield
 
     def pro_bill(self, this, **kwargs):
-        yield
+        try:
+            sync = next(
+                i for i in self.channels["logistics"].receive(self, this)
+                if i.action == this.__name__
+            )
+        except StopIteration:
+            pass
+        else:
+            self.delivery[next(iter(self.delivery))] = True
+        finally:
+            yield None
 
 
 class Package(Proclet):
@@ -366,7 +375,6 @@ class Account:
     def __init__(self, channels=None):
         self.channels  = channels or {}
         self.orders = {}
-        self.lookup = {}
 
     def order(self, items):
         rv = Order("Order", items, channels=self.channels)
@@ -374,16 +382,11 @@ class Account:
         return rv
 
     def run(self, p: Proclet):
-        self.lookup.update(getattr(p, "delivery", {}))
         yield from p()
-        for i in getattr(p, "pending", {}).values():
-            self.lookup[i.uid] = i
-            #if i is not p:
-            #    yield from self.run(i)
 
     def report(self, m):
         try:
-            source = self.lookup[m.sender]
+            source = Proclet.population[m.sender]
             connect = getattr(m.connect, "hex", "")
             return f"{connect:>36}|{source.name:^20}|{m.action:<12}|{m.content}"
         except AttributeError:
