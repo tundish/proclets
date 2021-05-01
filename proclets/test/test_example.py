@@ -53,7 +53,7 @@ class DeliveryTests(unittest.TestCase):
             Package.create([], luck=1, channels=channels, marking={1})
         ]
 
-        for n in range(24):
+        for n in range(32):
             for p in jobs:
                 with self.subTest(n=n, p=p):
                     if not n:

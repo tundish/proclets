@@ -287,7 +287,7 @@ class Delivery(Proclet):
 
     def pro_deliver(self, this, **kwargs):
         try:
-            n, pkg_uid = next(iter(sorted((v, k) for k, v in self.retries.items())))
+            n, pkg_uid = next(iter(sorted((v, k) for k, v in self.retries.items() if v is not None)))
         except StopIteration:
             pass
         else:
@@ -299,7 +299,7 @@ class Delivery(Proclet):
                     action = this.__name__,
                     content = f"Delivered {pkg_uid.hex[:5]} " + (f"after {n} retries" if n else "first time"),
                 )
-                del self.retries[pkg_uid]
+                self.retries[pkg_uid] = None
         finally:
             yield None
 
@@ -331,7 +331,7 @@ class Delivery(Proclet):
         except StopIteration:
             pass
         else:
-            print(self.retries[sync.sender])
+            self.retries[sync.sender] = None
         finally:
             yield None
 
