@@ -106,7 +106,7 @@ class Package(Proclet):
         super().__init__(*args, **kwargs)
         self.contents = contents
         self.luck = random.triangular(0, 1, 3/4) if luck is None else luck
-        self.delivery = None
+        self.delivery = {}
 
     @property
     def dag(self):
@@ -134,11 +134,11 @@ class Package(Proclet):
                 channels=self.channels,
                 group={self.uid},
             )
-            self.delivery = d.uid
+            self.delivery[d.uid] = None
             yield d
 
             yield from self.channels["logistics"].send(
-                sender=self.uid, group=[self.delivery],
+                sender=self.uid, group=[d.uid],
                 action=this.__name__,
             )
 
@@ -153,35 +153,36 @@ class Package(Proclet):
         except StopIteration:
             pass
         else:
-            sync.content = f"Package {sync.sender.hex} delivered"
-            #self.retries[sync.sender] = 0
-            yield sync
+            self.delivery[next(iter(self.delivery))] = True
         finally:
             yield None
 
     def pro_retry(self, this, **kwargs):
         try:
-            msg = next(self.channels["logistics"].respond(
-                self, this,
-                actions={this.__name__: None},
-                contents={this.__name__: "Yup"},
-            ))
-        except (StopIteration, queue.Empty):
-            return
+            sync = next(
+                i for i in self.channels["logistics"].receive(self, this)
+                if i.action == this.__name__
+            )
+        except StopIteration:
+            pass
         else:
-            yield msg
+            self.delivery[next(iter(self.delivery))] = None
+        finally:
+            yield None
 
     def pro_undeliver(self, this, **kwargs):
         try:
-            msg = next(self.channels["logistics"].respond(
-                self, this,
-                actions={this.__name__: None},
-                contents={this.__name__: "Yup"},
-            ))
-        except (StopIteration, queue.Empty):
-            return
+            sync = next(
+                i for i in self.channels["logistics"].receive(self, this)
+                if i.action == this.__name__
+            )
+        except StopIteration:
+            pass
         else:
-            yield msg
+            self.delivery[next(iter(self.delivery))] = False
+            print(self.delivery)
+        finally:
+            yield None
 
     def pro_return(self, this, **kwargs):
         yield
@@ -300,7 +301,26 @@ class Delivery(Proclet):
     def pro_finish(self, this, **kwargs):
         yield
 
-class Back(Proclet): pass
+
+class Back(Proclet):
+
+    @property
+    def dag(self):
+        return {
+            self.pro_return: [self.pro_check],
+            self.pro_check: [self.pro_bill],
+            self.pro_bill: [],
+        }
+
+    def pro_return(self, this, **kwargs):
+        yield
+
+    def pro_check(self, this, **kwargs):
+        yield
+
+    def pro_bill(self, this, **kwargs):
+        yield
+
 
 class Account:
 
