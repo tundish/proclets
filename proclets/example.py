@@ -113,12 +113,14 @@ class Package(Proclet):
     def dag(self):
         return {
             self.pro_split: [self.pro_load],
-            self.pro_load: [self.pro_retry, self.pro_deliver, self.pro_undeliver],
+            self.pro_load: [
+                self.pro_retry, self.pro_deliver, self.pro_undeliver, self.pro_bill, self.pro_finish
+            ],
             self.pro_deliver: [self.pro_load],
             self.pro_retry: [self.pro_load],
             self.pro_undeliver: [self.pro_load],
-            #self.pro_bill: [],
-            #self.pro_finish: [],
+            self.pro_bill: [self.pro_load],
+            self.pro_finish: [],
         }
 
     def pro_split(self, this, **kwargs):
