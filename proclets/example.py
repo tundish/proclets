@@ -53,8 +53,20 @@ class Item:
 
 class Order(Proclet):
 
-    def __init__(self, name, items, *args, **kwargs):
-        super().__init__(name, *args, **kwargs)
+    @staticmethod
+    def report(m):
+        try:
+            source = Proclet.population[m.sender]
+            connect = getattr(m.connect, "hex", "")
+            return f"{connect:>36}|{source.name:^20}|{m.action:<14}|{m.content or ''}"
+        except AttributeError:
+            return "{0}|{1}|Call Proclet  |{2.name}".format(" "*36, " "*20, m)
+        except TypeError:
+            print(m, file=sys.stderr)
+            raise
+
+    def __init__(self, items, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.items = items
 
     @property
@@ -406,13 +418,19 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, style="{", format="{message}")
     #a = Account(channels={"orders": Channel(), "logistics": Channel(), "billing": Channel()})
     channels = {"orders": Channel(), "logistics": Channel(), "billing": Channel()}
-    items = [Item(product=p, quantity=random.randint(1, 10)) for p in Product]
-    order = a.order(items)
-
-    print(*[i.__qualname__ for i in order.dag], sep="\n", file=sys.stderr)
-    #while a.pending:
-    logging.info(a.report(order))
-    for n in range(12):
-        for i in a.run(order):
-            logging.info(a.report(i))
-    # logging.info(next(iter(Package.delivery.values())).attempts)
+    choices = list(Product)
+    jobs = [
+        Order([
+            Item(product=random.choice(choices), quantity=random.randint(1, 6)),
+            Item(product=random.choice(choices), quantity=random.randint(1, 6))
+        ], channels=channels),
+        Order([
+            Item(product=random.choice(choices), quantity=random.randint(1, 6)),
+            Item(product=random.choice(choices), quantity=random.randint(1, 6))
+        ], channels=channels)
+    ]
+    for n in range(128):
+        for j in jobs:
+            run = list(j())
+            for r in run:
+                print(j.report(r), file=sys.stderr)
