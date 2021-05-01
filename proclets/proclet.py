@@ -105,7 +105,8 @@ class Proclet:
 
     @property
     def enabled(self):
-        return [self.arcs[i][1] for i in sorted(self.marking)]
+        rv = {self.arcs[i][1]: i for i in sorted(self.marking)}
+        return list(rv.keys())
 
     @functools.cached_property
     def i_nodes(self):

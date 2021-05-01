@@ -114,13 +114,9 @@ class Package(Proclet):
         return {
             self.pro_split: [self.pro_load],
             self.pro_load: [self.pro_retry, self.pro_deliver, self.pro_undeliver],
-            #self.pro_deliver: [self.pro_bill, self.pro_finish],
-            #self.pro_retry: [self.pro_load, self.pro_finish],
-            #self.pro_undeliver: [self.pro_return, self.pro_bill, self.pro_finish],
             self.pro_deliver: [self.pro_load],
             self.pro_retry: [self.pro_load],
-            self.pro_undeliver: [self.pro_load, self.pro_return],
-            self.pro_return: [],
+            self.pro_undeliver: [self.pro_load],
             #self.pro_bill: [],
             #self.pro_finish: [],
         }
@@ -183,19 +179,18 @@ class Package(Proclet):
             pass
         else:
             self.delivery[next(iter(self.delivery))] = False
-            print(self.delivery)
-        finally:
-            yield None
-
-    def pro_return(self, this, **kwargs):
-        if self.delivery and all(i is False for i in self.delivery.values()):
             b = Back.create(
                 channels=self.channels,
                 group={self.uid},
             )
             self.back[b.uid] = None
             yield b
-        yield
+            yield from self.channels["logistics"].send(
+                sender=self.uid, group=[b.uid],
+                action="pro_return",
+            )
+        finally:
+            yield None
 
     def pro_bill(self, this, **kwargs):
         yield
@@ -333,13 +328,34 @@ class Back(Proclet):
             self.pro_bill: [],
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.package = None
+
     def pro_return(self, this, **kwargs):
-        yield
+        try:
+            sync = next(
+                i for i in self.channels["logistics"].receive(self, this)
+                if i.action == this.__name__
+            )
+        except StopIteration:
+            pass
+        else:
+            self.package = sync.sender
+            sync.content = f"Returning package {sync.sender.hex[:5]}"
+            yield sync
+        finally:
+            yield None
 
     def pro_check(self, this, **kwargs):
         yield
 
     def pro_bill(self, this, **kwargs):
+        yield from self.channels["logistics"].send(
+            sender=self.uid, group=[self.package],
+            action = this.__name__,
+            content = f"Package {self.package.hex[:5]} returned",
+        )
         yield
 
 
