@@ -207,7 +207,13 @@ class Package(Proclet):
         yield
 
     def pro_finish(self, this, **kwargs):
-        yield
+        d_uid = next(iter(self.delivery), None)
+        if d_uid and self.delivery[d_uid] is not None:
+            yield from self.channels["logistics"].send(
+                sender=self.uid, group=[d_uid],
+                action=this.__name__,
+            )
+        yield None
 
 
 class Delivery(Proclet):
@@ -261,7 +267,9 @@ class Delivery(Proclet):
 
     def pro_retry(self, this, **kwargs):
         try:
-            n, pkg_uid = next(iter(sorted((v, k) for k, v in self.retries.items() if v < self.limit)))
+            n, pkg_uid = next(iter(sorted(
+                (v, k) for k, v in self.retries.items() if v is not None and v < self.limit
+            )))
         except StopIteration:
             pass
         else:
@@ -307,7 +315,7 @@ class Delivery(Proclet):
                 action = this.__name__,
                 content = f"Failed to deliver {pkg_uid.hex[:5]}",
             )
-            del self.retries[pkg_uid]
+            self.retries[pkg_uid] = None
         finally:
             yield None
 
@@ -323,8 +331,7 @@ class Delivery(Proclet):
         except StopIteration:
             pass
         else:
-            pass
-            self.delivery[next(iter(self.delivery))] = False
+            print(self.retries[sync.sender])
         finally:
             yield None
 
@@ -362,10 +369,9 @@ class Back(Proclet):
         yield
 
     def pro_bill(self, this, **kwargs):
-        yield from self.channels["logistics"].send(
+        yield from self.channels["orders"].send(
             sender=self.uid, group=[self.package],
             action = this.__name__,
-            content = f"Package {self.package.hex[:5]} returned",
         )
         yield
 
@@ -398,7 +404,8 @@ class Account:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, style="{", format="{message}")
-    a = Account(channels={"orders": Channel(), "logistics": Channel(), "billing": Channel()})
+    #a = Account(channels={"orders": Channel(), "logistics": Channel(), "billing": Channel()})
+    channels = {"orders": Channel(), "logistics": Channel(), "billing": Channel()}
     items = [Item(product=p, quantity=random.randint(1, 10)) for p in Product]
     order = a.order(items)
 
