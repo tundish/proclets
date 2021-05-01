@@ -102,19 +102,19 @@ class Order(Proclet):
 
 class Package(Proclet):
 
-    delivery = dict()
-
-    def __init__(self, name, contents, *args, **kwargs):
-        super().__init__(name, *args, **kwargs)
+    def __init__(self, contents, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.contents = contents
+        self.delivery = None
 
     @property
     def dag(self):
         return {
             self.pro_split: [self.pro_load],
-            self.pro_load: [self.pro_retry, self.pro_deliver, self.pro_undeliver],
-            self.pro_retry: [self.pro_load, self.pro_finish],
+            #self.pro_load: [self.pro_retry, self.pro_deliver, self.pro_undeliver],
+            self.pro_load: [self.pro_deliver],
             self.pro_deliver: [self.pro_bill, self.pro_finish],
+            self.pro_retry: [self.pro_load, self.pro_finish],
             self.pro_undeliver: [self.pro_bill, self.pro_return, self.pro_finish],
             self.pro_return: [self.pro_bill],
             self.pro_bill: [self.pro_bill],
@@ -124,45 +124,64 @@ class Package(Proclet):
     def pro_split(self, this, **kwargs):
         yield from self.channels["orders"].respond(
             self, this,
-            actions={Init.request: Init.promise},
-            contents={Init.request: self.contents},
+            actions={this.__name__: None},
         )
-        yield
 
     def pro_load(self, this, **kwargs):
         if not self.delivery:
-            rv = Delivery("Delivery", channels=self.channels)
-            self.delivery[rv.uid] = rv
-            yield rv
-
-        if not self.channels["logistics"].store[self.uid]:
-            yield from self.channels["logistics"].send(
-                sender=self.uid, group=[next(iter(self.delivery.keys()))], connect=self.uid,
-                action=Init.request, context={i.uid for i in self.contents}, content=self.contents
+            d = Delivery.create(
+                domain=self.domain,
+                channels=self.channels,
+                group={self.uid},
             )
+            self.delivery = d.uid
+            yield d
+
+            yield from self.channels["logistics"].send(
+                sender=self.uid, group=[self.delivery],
+                action=this.__name__,
+            )
+
         yield
-
-    def pro_retry(self, this, **kwargs):
-        retries = [i for i in self.channels["logistics"].store[self.uid] if i.action == Init.counter]
-        if len(retries) >= 3 and not any(
-            i.action == Init.abandon for i in self.channels["logistics"].store[self.uid]
-        ):
-            yield from self.channels["logistics"].send(
-                sender=self.uid, group=[next(iter(self.delivery.keys()))], connect=self.uid,
-                action=Init.decline, context={i.uid for i in self.contents}, content=self.contents
-            )
 
     def pro_deliver(self, this, **kwargs):
-        yield from self.channels["logistics"].respond(
-            self, this,
-            actions={Exit.deliver: None},
-            contents={Exit.deliver: "Delivered"},
-        )
-        yield
+        try:
+            sync = next(
+                i for i in self.channels["logistics"].receive(self, this)
+                if i.action == this.__name__
+            )
+        except StopIteration:
+            pass
+        else:
+            sync.content = f"Package {sync.sender.hex} delivered"
+            self.retries[sync.sender] = 0
+            yield sync
+        finally:
+            yield None
+
+    def pro_retry(self, this, **kwargs):
+        try:
+            msg = next(self.channels["logistics"].respond(
+                self, this,
+                actions={this.__name__: None},
+                contents={this.__name__: "Yup"},
+            ))
+        except (StopIteration, queue.Empty):
+            return
+        else:
+            yield msg
 
     def pro_undeliver(self, this, **kwargs):
-        # Stub method for compatibility with Fahland
-        yield
+        try:
+            msg = next(self.channels["logistics"].respond(
+                self, this,
+                actions={this.__name__: None},
+                contents={this.__name__: "Yup"},
+            ))
+        except (StopIteration, queue.Empty):
+            return
+        else:
+            yield msg
 
     def pro_return(self, this, **kwargs):
         yield
