@@ -83,9 +83,6 @@ class Order(Proclet):
         yield
 
     def pro_split(self, this, **kwargs):
-        if len(self.domain) == len(self.items) + 1:
-            yield
-
         durables, perishables = [], []
         groups = itertools.groupby(self.items, key=operator.attrgetter("product"))
         for p, g in groups:
@@ -94,10 +91,9 @@ class Order(Proclet):
             else:
                 perishables.extend(g)
 
-        for p in [
-            Package.create("Box of durables", durables, channels=self.channels),
-            Package.create("Box of perishables", perishables, channels=self.channels)
-        ]:
+        for items in (durables, perishables):
+            if not items: continue
+            p = Package.create(items, channels=self.channels)
             yield p
             yield from self.channels["orders"].send(
                 sender=self.uid, group=[p.uid],
@@ -396,7 +392,6 @@ class Back(Proclet):
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, style="{", format="{message}")
-    #a = Account(channels={"orders": Channel(), "logistics": Channel(), "billing": Channel()})
     channels = {"orders": Channel(), "logistics": Channel(), "billing": Channel()}
     choices = list(Product)
     jobs = [
