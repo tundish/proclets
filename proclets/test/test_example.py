@@ -83,7 +83,7 @@ class ExampleTests(unittest.TestCase):
         self.assertEqual(4, len(dag), dag)
 
         dag = Package(None, []).dag
-        #self.assertEqual(8, len(dag), dag)
+        self.assertEqual(7, len(dag), dag)
 
         dag = Delivery(None, []).dag
         self.assertEqual(6, len(dag), dag)

@@ -60,7 +60,7 @@ class Order(Proclet):
             connect = getattr(m.connect, "hex", "")
             return f"{connect:>36}|{source.name:^20}|{m.action:<14}|{m.content or ''}"
         except AttributeError:
-            return "{0}|{1}|Call Proclet  |{2.name}".format(" "*36, " "*20, m)
+            return "{0}|{1}|Call Proclet  |{2.name} in play".format(" "*36, " "*20, m)
         except (KeyError, TypeError):
             print(m, file=sys.stderr)
             raise
@@ -94,8 +94,16 @@ class Order(Proclet):
             else:
                 perishables.extend(g)
 
-        yield Package.create("Box of durables", durables, channels=self.channels)
-        yield Package.create("Box of perishables", perishables, channels=self.channels)
+        for p in [
+            Package.create("Box of durables", durables, channels=self.channels),
+            Package.create("Box of perishables", perishables, channels=self.channels)
+        ]:
+            yield p
+            yield from self.channels["orders"].send(
+                sender=self.uid, group=[p.uid],
+                action=this.__name__,
+            )
+
         yield
 
     def pro_notify(self, this, **kwargs):
@@ -117,8 +125,6 @@ class Order(Proclet):
             pass
         else:
             self.delivery[next(iter(self.delivery))] = True
-        finally:
-            yield None
 
 
 class Package(Proclet):
@@ -403,7 +409,7 @@ if __name__ == "__main__":
             Item(product=random.choice(choices), quantity=random.randint(1, 6))
         ], channels=channels)
     ]
-    for n in range(128):
+    for n in range(32):
         for j in jobs:
             run = list(j())
             for r in run:

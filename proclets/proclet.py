@@ -83,7 +83,8 @@ class Proclet:
         except StopIteration:
             return
 
-        for obj in fn(fn, **kwargs):
+        events = fn(fn, **kwargs) or []
+        for obj in events:
             if obj is None:
                 # Transition is complete
                 self.marking -= self.i_nodes[fn]
