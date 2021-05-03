@@ -127,6 +127,7 @@ class Package(Proclet):
 
     def __init__(self, contents, *args, luck=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.order = None
         self.contents = contents
         self.luck = random.triangular(0, 1, 3/4) if luck is None else luck
         self.delivery = {}
@@ -147,10 +148,17 @@ class Package(Proclet):
         }
 
     def pro_split(self, this, **kwargs):
-        yield from self.channels["orders"].respond(
-            self, this,
-            actions={this.__name__: None},
-        )
+        try:
+            sync = next(
+                i for i in self.channels["logistics"].receive(self, this)
+                if i.action == this.__name__
+            )
+        except StopIteration:
+            pass
+        else:
+            self.order = sync.sender
+        finally:
+            yield None
 
     def pro_load(self, this, **kwargs):
         if not self.delivery:
@@ -166,7 +174,7 @@ class Package(Proclet):
                 action=this.__name__,
             )
 
-        yield
+        yield None
 
     def pro_deliver(self, this, **kwargs):
         try:
@@ -218,6 +226,10 @@ class Package(Proclet):
             yield None
 
     def pro_bill(self, this, **kwargs):
+        yield from self.channels["logistics"].send(
+            sender=self.uid, group=[self.order],
+            action=this.__name__,
+        )
         yield
 
     def pro_finish(self, this, **kwargs):
