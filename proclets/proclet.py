@@ -97,8 +97,8 @@ class Proclet:
                     self.domain.append(obj)
             else:
                 yield obj
-        self.slate[fn] += n
-        self.tally[fn] += 1
+        self.slate[fn.__name__] += n
+        self.tally[fn.__name__] += 1
 
     @property
     def dag(self):

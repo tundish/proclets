@@ -68,10 +68,10 @@ class DeliveryTests(unittest.TestCase):
                         self.assertIsInstance(p.domain[0], Delivery)
                         self.assertIsInstance(run[0], Delivery)
                         self.assertEqual(0, len(p.domain[0].retries))
-                    elif n == 16:
-                        pass
-                        #print(p.name, p.enabled)
-                        #self.assertEqual(1, len(p.domain[0].retries))
+
+        for p in jobs:
+            with self.subTest(p=p):
+                self.assertIn("pro_bill", p.tally)
 
 
 class ExampleTests(unittest.TestCase):
