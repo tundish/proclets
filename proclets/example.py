@@ -227,7 +227,8 @@ class Package(Proclet):
                 sender=self.uid, group=[d_uid],
                 action=this.__name__,
             )
-        yield None
+            self.delivery.clear()
+        #yield None
 
 
 class Delivery(Proclet):
@@ -236,7 +237,7 @@ class Delivery(Proclet):
     def create(cls, *args, domain=None, fmt="{cls.__name__}_{0:03}", **kwargs):
         domain = domain or cls.population.values()
         try:
-            rv = next(i for i in domain if isinstance(i, cls))
+            rv = next(i for i in domain if isinstance(i, cls) and i.capacity > len(i.group))
             rv.group.update(kwargs.get("group", set()))
             return rv
         except StopIteration:
@@ -346,6 +347,7 @@ class Delivery(Proclet):
             pass
         else:
             self.retries[sync.sender] = None
+            self.capacity = 0
         finally:
             yield None
 
