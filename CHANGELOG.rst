@@ -6,6 +6,11 @@
 Change Log
 ::::::::::
 
+0.4.0
+=====
+
+* Example almost complete as per Fahland.
+
 0.3.0
 =====
 

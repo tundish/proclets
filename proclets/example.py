@@ -405,6 +405,7 @@ if __name__ == "__main__":
         ], channels=channels)
     ]
     for n in range(32):
+    #while any(i.marking for i in jobs):
         for j in jobs:
             run = list(j())
             for r in run:
