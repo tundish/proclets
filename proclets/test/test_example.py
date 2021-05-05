@@ -72,6 +72,7 @@ class DeliveryTests(unittest.TestCase):
         for p in jobs:
             with self.subTest(p=p):
                 self.assertIn("pro_bill", p.tally)
+                self.assertEqual(1, p.tally["pro_bill"])
 
 
 class ExampleTests(unittest.TestCase):

@@ -137,13 +137,11 @@ class Package(Proclet):
     def dag(self):
         return {
             self.pro_split: [self.pro_load],
-            self.pro_load: [
-                self.pro_retry, self.pro_deliver, self.pro_undeliver, self.pro_bill, self.pro_finish
-            ],
-            self.pro_deliver: [self.pro_load],
+            self.pro_load: [self.pro_retry, self.pro_deliver, self.pro_undeliver],
+            self.pro_deliver: [self.pro_bill],
             self.pro_retry: [self.pro_load],
-            self.pro_undeliver: [self.pro_load],
-            self.pro_bill: [self.pro_load],
+            self.pro_undeliver: [self.pro_return],
+            self.pro_bill: [self.pro_finish],
             self.pro_finish: [],
         }
 
@@ -183,10 +181,9 @@ class Package(Proclet):
                 if i.action == this.__name__
             )
         except StopIteration:
-            pass
+            return
         else:
             self.delivery[next(iter(self.delivery))] = True
-        finally:
             yield None
 
     def pro_retry(self, this, **kwargs):
@@ -196,10 +193,9 @@ class Package(Proclet):
                 if i.action == this.__name__
             )
         except StopIteration:
-            pass
+            return
         else:
             self.delivery[next(iter(self.delivery))] = None
-        finally:
             yield None
 
     def pro_undeliver(self, this, **kwargs):
@@ -209,7 +205,7 @@ class Package(Proclet):
                 if i.action == this.__name__
             )
         except StopIteration:
-            pass
+            return
         else:
             self.delivery[next(iter(self.delivery))] = False
             b = Back.create(
@@ -218,16 +214,19 @@ class Package(Proclet):
             )
             self.back[b.uid] = None
             yield b
-            yield from self.channels["logistics"].send(
-                sender=self.uid, group=[b.uid],
-                action="pro_return",
-            )
-        finally:
             yield None
 
     def pro_bill(self, this, **kwargs):
         yield from self.channels["logistics"].send(
             sender=self.uid, group=[self.order],
+            action=this.__name__,
+        )
+        yield
+
+    def pro_return(self, this, **kwargs):
+        b_uid = next(iter(self.back))
+        yield from self.channels["logistics"].send(
+            sender=self.uid, group=[b_uid],
             action=this.__name__,
         )
         yield
