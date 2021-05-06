@@ -69,10 +69,13 @@ class DeliveryTests(unittest.TestCase):
                         self.assertIsInstance(run[0], Delivery)
                         self.assertEqual(0, len(p.domain[0].retries))
 
-        for p in jobs:
-            with self.subTest(p=p):
-                self.assertIn("pro_bill", p.tally)
-                self.assertEqual(1, p.tally["pro_bill"])
+        for n, p in enumerate(jobs):
+            with self.subTest(p=p.name, n=n):
+                if not n:
+                    self.assertNotIn("pro_bill", p.tally)
+                else:
+                    self.assertIn("pro_bill", p.tally)
+                    self.assertEqual(1, p.tally["pro_bill"])
 
 
 class ExampleTests(unittest.TestCase):
