@@ -22,11 +22,11 @@ import unittest
 import sys
 
 from proclets.channel import Channel
-from proclets.example import Order
-from proclets.example import Package
-from proclets.example import Delivery
-from proclets.example import Back
-from proclets.example import Product
+from proclets.fahland import Order
+from proclets.fahland import Package
+from proclets.fahland import Delivery
+from proclets.fahland import Back
+from proclets.fahland import Product
 from proclets.proclet import Proclet
 from proclets.types import Performative
 
