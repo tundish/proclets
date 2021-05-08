@@ -56,21 +56,16 @@ class Control(Proclet):
         yield None
 
     def pro_separation(self, this, **kwargs):
-        if not self.tasks.get(this):
-            self.tasks[this] = next(self.uplink.send(
-                sender=self.uid, group=self.group,
-                action=Init.request, content="You are go for separation"
-            ))
-            yield self.tasks[this]
-
-        yield from self.uplink.respond(
-            self,
-            actions={Init.promise: Init.confirm, Exit.deliver: None},
-            contents={
-                Init.promise: "Copy your separation",
-                Exit.deliver: "Separation complete"
-            },
-        )
+        try:
+            sync = next(
+                i for i in self.uplink.receive(self, this)
+                if i.action == this.__name__
+            )
+        except StopIteration:
+            pass
+        else:
+            logging.info("Separation complete")
+            yield None
 
     def pro_recovery(self, this, **kwargs):
         if this not in self.tasks:
@@ -102,11 +97,11 @@ class Control(Proclet):
 
 class Vehicle(Proclet):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, orbits=0, **kwargs):
         super().__init__(*args, **kwargs)
         self.beacon = self.channels.get("beacon")
         self.uplink = self.channels.get("uplink")
-        self.tasks = {}
+        self.orbits = orbits
 
     @property
     def dag(self):
@@ -133,26 +128,28 @@ class Vehicle(Proclet):
     def pro_separation(self, this, **kwargs):
         logging.info("Separation initiated")
         v = Vehicle.create(
-            name="Launch vehicle",
+            name="Launch vehicle", orbits=None,
             channels={"beacon": self.beacon}, group=self.group,
+            marking=self.i_nodes[self.pro_reentry],
         )
+        yield v
         yield from self.uplink.send(
             sender=self.uid, group=self.group, context={v.uid},
+            action=this.__name__,
         )
-        logging.info("Separation complete")
         yield None
 
     def pro_orbit(self, this, **kwargs):
-        if not self.uplink:
+        logging.info("In orbit")
+        if self.orbits is None:
             yield None
 
-        n = self.tasks.get(this, 1)
-        if n < 4:
+        if self.orbits < 3:
             yield from self.uplink.send(
                 sender=self.uid, group=self.group,
                 action=Init.message, content=f"In orbit {n}"
             )
-            self.tasks[this] = n + 1
+            self.orbits += 1
         else:
             yield from self.uplink.send(
                 sender=self.uid, group=self.group,
@@ -161,6 +158,7 @@ class Vehicle(Proclet):
             yield None
 
     def pro_reentry(self, this, **kwargs):
+        logging.info("Re-entering atmosphere")
         if self.uplink and self.tally[self.pro_orbit] < 4:
             return
         else:
