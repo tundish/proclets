@@ -48,23 +48,6 @@ class Control(Proclet):
         }
 
     def pro_launch(self, this, **kwargs):
-        if not self.tasks.get(this):
-            self.tasks[this] = next(self.uplink.send(
-                sender=self.uid, group=self.group,
-                action=Init.request, content="Advise ready for launch"
-            ))
-            yield self.tasks[this]
-
-        yield from self.uplink.respond(
-            self,
-            actions={Init.promise: Init.confirm, Exit.deliver: None},
-            contents={
-                Init.promise: "Launch initiated",
-                Exit.deliver: "Launch is complete"
-            },
-        )
-
-    def pro_launch(self, this, **kwargs):
         logging.info("We are go for launch")
         yield from self.uplink.send(
             sender=self.uid, group=self.group,
@@ -136,28 +119,6 @@ class Vehicle(Proclet):
         }
 
     def pro_launch(self, this, **kwargs):
-        if not self.tasks.get(this):
-            try:
-                m = next(
-                    self.uplink.respond(
-                        self,
-                        actions={Init.request: Init.promise},
-                        contents={Init.request: "We are go for launch"},
-                    )
-                )
-            except (StopIteration, queue.Empty):
-                return
-            else:
-                self.tasks[this] = m.connect
-                yield m
-        else:
-            yield from self.uplink.send(
-                sender=self.uid, group=self.group, connect=self.tasks[this],
-                action=Exit.deliver, content="Launch phase is complete"
-            )
-            yield None
-
-    def pro_launch(self, this, **kwargs):
         try:
             sync = next(
                 i for i in self.uplink.receive(self, this)
@@ -166,35 +127,20 @@ class Vehicle(Proclet):
         except StopIteration:
             pass
         else:
+            logging.info("Launch phase is complete")
             yield None
 
     def pro_separation(self, this, **kwargs):
-        if not self.tasks.get(this):
-            try:
-                m = next(
-                    self.uplink.respond(
-                        self,
-                        actions={Init.request: Init.promise},
-                        contents={Init.request: "Separation initiated"},
-                    )
-                )
-            except (StopIteration, queue.Empty):
-                return
-            else:
-                self.tasks[this] = m.connect
-                yield m
-        else:
-            yield Vehicle.create(
-                name="Launch vehicle",
-                channels={"beacon": self.beacon}, group=self.group,
-                marking=self.i_nodes[self.pro_reentry]
-            )
-
-            yield from self.uplink.send(
-                sender=self.uid, group=self.group, connect=self.tasks[this],
-                action=Exit.deliver, content="Separation complete"
-            )
-            yield None
+        logging.info("Separation initiated")
+        v = Vehicle.create(
+            name="Launch vehicle",
+            channels={"beacon": self.beacon}, group=self.group,
+        )
+        yield from self.uplink.send(
+            sender=self.uid, group=self.group, context={v.uid},
+        )
+        logging.info("Separation complete")
+        yield None
 
     def pro_orbit(self, this, **kwargs):
         if not self.uplink:
@@ -304,4 +250,4 @@ if __name__ == "__main__":
         for p in procs:
             flow = list(p())
             for i in flow:
-                logging.info(i)
+                logging.debug(i)
