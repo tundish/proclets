@@ -140,21 +140,17 @@ class Vehicle(Proclet):
         yield None
 
     def pro_orbit(self, this, **kwargs):
-        logging.info("In orbit")
         if self.orbits is None:
             yield None
 
         if self.orbits < 3:
-            yield from self.uplink.send(
-                sender=self.uid, group=self.group,
-                action=Init.message, content=f"In orbit {n}"
-            )
             self.orbits += 1
-        else:
+            logging.info(f"In orbit {self.orbits}")
             yield from self.uplink.send(
                 sender=self.uid, group=self.group,
-                action=Exit.message, content="Orbits complete"
+                action=Init.message,
             )
+        else:
             yield None
 
     def pro_reentry(self, this, **kwargs):
