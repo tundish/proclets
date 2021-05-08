@@ -17,6 +17,7 @@
 # along with proclets.  If not, see <http://www.gnu.org/licenses/>.
 
 import enum
+import logging
 import random
 import sys
 import queue
@@ -62,6 +63,14 @@ class Control(Proclet):
                 Exit.deliver: "Launch is complete"
             },
         )
+
+    def pro_launch(self, this, **kwargs):
+        logging.info("We are go for launch")
+        yield from self.uplink.send(
+            sender=self.uid, group=self.group,
+            action=this.__name__,
+        )
+        yield None
 
     def pro_separation(self, this, **kwargs):
         if not self.tasks.get(this):
@@ -148,6 +157,17 @@ class Vehicle(Proclet):
             )
             yield None
 
+    def pro_launch(self, this, **kwargs):
+        try:
+            sync = next(
+                i for i in self.uplink.receive(self, this)
+                if i.action == this.__name__
+            )
+        except StopIteration:
+            pass
+        else:
+            yield None
+
     def pro_separation(self, this, **kwargs):
         if not self.tasks.get(this):
             try:
@@ -166,7 +186,7 @@ class Vehicle(Proclet):
         else:
             yield Vehicle.create(
                 name="Launch vehicle",
-                channels={"beacon": self.beacon}, group=self.group.copy(),
+                channels={"beacon": self.beacon}, group=self.group,
                 marking=self.i_nodes[self.pro_reentry]
             )
 
@@ -270,78 +290,18 @@ class Recovery(Proclet):
     def pro_complete(self, this, **kwargs):
         yield
 
+def mission():
+    channels = {"uplink": Channel(), "beacon": Channel()}
+    v = Vehicle.create(name="Space vehicle", channels=channels)
+    c = Control.create(name="Mission control", channels=dict(channels, vhf=Channel()), group=[v.uid])
+    v.group = [c.uid]
+    return (c, v)
 
-class ProcletTests(unittest.TestCase):
-
-    @staticmethod
-    def report(m, lookup):
-        try:
-            source = lookup[m.sender]
-            return "{connect!s:>36}|{source.name:15}|{action:<12}|{content}".format(source=source, **vars(m))
-        except AttributeError:
-            return "{0}|{1}|Call Proclet|{2.name}".format(" "*36, " "*15, m)
-
-    def test_initial_markings(self):
-        c = Control(None)
-        self.assertEqual({0}, c.marking)
-        self.assertEqual((None, c.pro_launch), c.arcs[0])
-        self.assertEqual({0}, c.i_nodes[c.pro_launch])
-
-        v = Vehicle(None)
-        self.assertEqual({0}, v.marking)
-        self.assertEqual((None, v.pro_launch), v.arcs[0])
-        self.assertEqual({0}, v.i_nodes[v.pro_launch])
-
-    def test_flow(self):
-        channels = {"uplink": Channel(), "beacon": Channel()}
-        v = Vehicle.create(name="Space vehicle", channels=channels)
-        c = Control.create(name="Mission control", channels=dict(channels, vhf=Channel()), group={v.uid: v})
-        v.group = {c.uid: c}
-        lookup = {c.uid: c, v.uid: v}
-
-        for n in range(16):
-            c_flow = list(c())
-            v_flow = list(v())
-            with self.subTest(n=n):
-                self.assertTrue(v.marking)
-                self.assertTrue(c.marking)
-                for flow in (c_flow, v_flow):
-                    for item in flow:
-                        if isinstance(item, Proclet):
-                            lookup[item.uid] = item
-                        else:
-                            pass
-                            #self.assertTrue(item.content)
-
-                        print(self.report(item, lookup), file=sys.stderr)
-
-                if n == 0:
-                    self.assertIn(c.pro_launch, c.enabled)
-                    self.assertIn(v.pro_launch, v.enabled)
-                elif n == 2:
-                    self.assertIn(c.pro_separation, c.enabled)
-                    self.assertIn(v.pro_separation, v.enabled)
-                elif n == 4:
-                    self.assertIn(c.pro_separation, c.enabled)
-                    self.assertIn(v.pro_orbit, v.enabled)
-                elif n == 5:
-                    self.assertIn(c.pro_recovery, c.enabled)
-                    self.assertIn(v.pro_orbit, v.enabled)
-                elif n == 7:
-                    self.assertIn(c.pro_recovery, c.enabled)
-                    self.assertIn(v.pro_orbit, v.enabled)
-                elif n == 8:
-                    self.assertIn(c.pro_recovery, c.enabled)
-                    self.assertIn(v.pro_reentry, v.enabled)
-                elif n == 9:
-                    self.assertIn(c.pro_recovery, c.enabled)
-                    self.assertIn(v.pro_reentry, v.enabled)
-                elif n == 10:
-                    pass
-                    #self.assertIn(c.pro_recovery, c.enabled)
-                    #self.assertIn(v.pro_recovery, v.enabled)
-
-        vehicles = [i for i in lookup.values() if isinstance(i, Vehicle)]
-        self.assertEqual(2, len(vehicles))
-        recoveries = [i for i in lookup.values() if isinstance(i, Recovery)]
-        self.assertEqual(2, len(recoveries))
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, style="{", format="{message}")
+    procs = mission()
+    for n in range(16):
+        for p in procs:
+            flow = list(p())
+            for i in flow:
+                logging.info(i)
