@@ -105,7 +105,7 @@ class Channel:
             context = m.context and m.context.copy().union(context or set())
             if action is not None:
                 yield from self.send(
-                    sender=p.uid, group=[m.sender],
+                    sender=p.uid, group={m.sender},
                     action=action, content=content,
                     connect=m.connect or m.uid,
                     context=context

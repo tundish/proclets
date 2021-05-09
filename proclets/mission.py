@@ -36,7 +36,7 @@ class Control(Proclet):
         self.beacon = self.channels.get("beacon")
         self.uplink = self.channels.get("uplink")
         self.vhf = self.channels.get("vhf")
-        self.tasks = set()
+        self.tasks = {}
 
     @property
     def dag(self):
@@ -77,32 +77,28 @@ class Control(Proclet):
         except StopIteration:
             pass
         else:
-            self.tasks.add(sync.sender)
-            v = self.population[sync.sender].name.lower()
-            logging.info(f"Observing reentry of {v}", extra={"proclet": self})
+            self.tasks[sync.sender] = None
+            vehicle = self.population[sync.sender].name.lower()
+            logging.info(f"Observing reentry of {vehicle}", extra={"proclet": self})
         yield None
 
     def pro_recovery(self, this, **kwargs):
-        logging.info(f"Recovery?", extra={"proclet": self})
-        try:
-            msg = self.beacon.get(self.uid)
-        except queue.Empty:
-            return
-
-        if msg.sender not in self.tasks:
-            self.tasks.add(msg.sender)
-            channels = {k: self.channels[k] for k in ("beacon", "vhf")}
-            r = Recovery.create(
-                name="Recovery Team",
-                channels=channels,  
-                group={self.uid}
-            )
-            yield r
-            yield from self.vhf.send(
-                sender=self.uid, group=[r.uid],
-                action=Init.request, context={msg.sender},
-                content="Briefing Recovery Team"
-            )
+        for k, v in self.tasks.items():
+            if v is None:
+                channels = {k: self.channels[k] for k in ("beacon", "vhf")}
+                r = Recovery.create(
+                    name="Recovery Team",
+                    channels=channels,
+                    group=[self.uid],
+                )
+                self.tasks[k] = r.uid
+                yield r
+                yield from self.vhf.send(
+                    sender=self.uid, group={r.uid},
+                    action=Init.request, context={k},
+                )
+                vehicle = self.population[k].name.lower()
+                logging.info(f"Team {r.uid.hex[:3]} briefed for recovery of {vehicle}", extra={"proclet": self})
 
     def pro_complete(self, this, **kwargs):
         yield
