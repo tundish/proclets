@@ -17,6 +17,7 @@
 # along with proclets.  If not, see <http://www.gnu.org/licenses/>.
 
 import enum
+import itertools
 import logging
 import random
 import sys
@@ -206,29 +207,48 @@ class Recovery(Proclet):
             self.pro_complete: [],
         }
 
+    @property
+    def control(self):
+        return next((m.sender for m in self.channels["vhf"].store[self.uid] if m.action == Init.request), None)
+
+    @property
+    def targets(self):
+        return next((m.context for m in self.channels["vhf"].store[self.uid] if m.action == Init.request), None)
+
     def pro_recovery(self, this, **kwargs):
-        try:
-            m = next(
-                self.channels.get("vhf").respond(
-                    self,
-                    actions={Init.request: Init.promise},
-                    contents={Init.request: "On our way"},
+        if not self.targets:
+            try:
+                m = next(
+                    self.channels["vhf"].respond(
+                        self, this,
+                        actions={Init.request: Init.promise},
+                    )
                 )
-            )
-            yield m
-            yield from self.channels["beacon"].send(
-                sender=self.uid, group=m.context,
-                action=this.__name__,
-                content="Rendezvous on beacon"
-            )
-            yield from self.channels["vhf"].send(
-                sender=self.uid, group=[m.sender],
-                action=Exit.deliver,
-            )
-        except (StopIteration, queue.Empty):
-            return
-        else:
-            yield None
+                yield m
+                vehicle = self.population[next(iter(self.targets))].name.lower()
+                logging.info("Commencing search for {vehicle}", extra={"proclet": self})
+            except (StopIteration, queue.Empty):
+                yield None
+                return
+
+        for t in self.targets:
+            if random.random() < self.luck:
+                yield from self.channels["beacon"].send(
+                    sender=self.uid, group={t},
+                    action=this.__name__,
+                )
+                yield from self.channels["vhf"].send(
+                    sender=self.uid, group={self.control},
+                    action=Exit.deliver,
+                )
+                logging.info("Rendezvous on beacon", extra={"proclet": self})
+            else:
+                yield from self.channels["vhf"].send(
+                    sender=self.uid, group={self.control},
+                    action=Exit.abandon,
+                )
+                logging.info("Abandoning search", extra={"proclet": self})
+        yield None
 
     def pro_complete(self, this, **kwargs):
         yield
@@ -243,10 +263,13 @@ def mission():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, style="{", format="{proclet.name:>16}|{funcName:>14}|{message}")
+    logging.basicConfig(
+        style="{", format="{proclet.name:>16}|{funcName:>14}|{message}",
+        level=logging.INFO,
+    )
     procs = mission()
     for n in range(16):
         for p in procs:
             flow = list(p())
             for i in flow:
-                logging.debug(i)
+                logging.debug(i, extra={"proclet": p})

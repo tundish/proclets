@@ -101,7 +101,7 @@ class Channel:
         while not self.empty(p.uid, party):
             m = self.get(p.uid, party)
             action = actions and actions.get(m.action)
-            content = contents and contents.get(m.action) or p.marking
+            content = contents and contents.get(m.action)
             context = m.context and m.context.copy().union(context or set())
             if action is not None:
                 yield from self.send(
