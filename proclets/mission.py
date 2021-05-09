@@ -36,13 +36,14 @@ class Control(Proclet):
         self.beacon = self.channels.get("beacon")
         self.uplink = self.channels.get("uplink")
         self.vhf = self.channels.get("vhf")
-        self.tasks = {}
+        self.tasks = set()
 
     @property
     def dag(self):
         return {
             self.pro_launch: [self.pro_separation],
-            self.pro_separation: [self.pro_recovery],
+            self.pro_separation: [self.pro_reentry],
+            self.pro_reentry: [self.pro_recovery],
             self.pro_recovery: [self.pro_recovery, self.pro_complete],
             self.pro_complete: [],
         }
@@ -64,20 +65,31 @@ class Control(Proclet):
         except StopIteration:
             pass
         else:
-            logging.info("Separation complete", extra={"proclet": self})
+            logging.info("Copy your separation", extra={"proclet": self})
+            yield None
+
+    def pro_reentry(self, this, **kwargs):
+        try:
+            sync = next(
+                i for i in self.beacon.receive(self, this)
+                if i.action == this.__name__
+            )
+        except StopIteration:
+            pass
+        else:
+            self.tasks.add(sync.sender)
+            v = self.population[sync.sender].name.lower()
+            logging.info(f"Observing reentry of {v}", extra={"proclet": self})
             yield None
 
     def pro_recovery(self, this, **kwargs):
-        if this not in self.tasks:
-            self.tasks[this] = set()
-
         try:
             msg = self.beacon.get(self.uid)
         except queue.Empty:
             return
 
-        if msg.sender not in self.tasks[this]:
-            self.tasks[this].add(msg.sender)
+        if msg.sender not in self.tasks:
+            self.tasks.add(msg.sender)
             channels = {k: self.channels[k] for k in ("beacon", "vhf")}
             r = Recovery.create(
                 name="Recovery Team",
@@ -146,10 +158,6 @@ class Vehicle(Proclet):
         if self.orbits < 3:
             self.orbits += 1
             logging.info(f"In orbit {self.orbits}", extra={"proclet": self})
-            yield from self.uplink.send(
-                sender=self.uid, group=self.group,
-                action=Init.message,
-            )
         else:
             yield None
 
