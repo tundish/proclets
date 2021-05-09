@@ -48,7 +48,7 @@ class Control(Proclet):
         }
 
     def pro_launch(self, this, **kwargs):
-        logging.info("We are go for launch")
+        logging.info("We are go for launch", extra={"proclet": self})
         yield from self.uplink.send(
             sender=self.uid, group=self.group,
             action=this.__name__,
@@ -64,7 +64,7 @@ class Control(Proclet):
         except StopIteration:
             pass
         else:
-            logging.info("Separation complete")
+            logging.info("Separation complete", extra={"proclet": self})
             yield None
 
     def pro_recovery(self, this, **kwargs):
@@ -122,11 +122,11 @@ class Vehicle(Proclet):
         except StopIteration:
             pass
         else:
-            logging.info("Launch phase is complete")
+            logging.info("Launch phase is complete", extra={"proclet": self})
             yield None
 
     def pro_separation(self, this, **kwargs):
-        logging.info("Separation initiated")
+        logging.info("Separation initiated", extra={"proclet": self})
         v = Vehicle.create(
             name="Launch vehicle", orbits=None,
             channels={"beacon": self.beacon}, group=self.group,
@@ -145,7 +145,7 @@ class Vehicle(Proclet):
 
         if self.orbits < 3:
             self.orbits += 1
-            logging.info(f"In orbit {self.orbits}")
+            logging.info(f"In orbit {self.orbits}", extra={"proclet": self})
             yield from self.uplink.send(
                 sender=self.uid, group=self.group,
                 action=Init.message,
@@ -154,15 +154,12 @@ class Vehicle(Proclet):
             yield None
 
     def pro_reentry(self, this, **kwargs):
-        logging.info("Re-entering atmosphere")
-        if self.uplink and self.tally[self.pro_orbit] < 4:
-            return
-        else:
-            yield from self.beacon.send(
-                sender=self.uid, group=self.group,
-                action=Exit.message, content="Re-entering atmosphere"
-            )
-            yield None
+        logging.info("Re-entering atmosphere", extra={"proclet": self})
+        yield from self.beacon.send(
+            sender=self.uid, group=self.group,
+            action=this.__name__,
+        )
+        yield None
 
     def pro_recovery(self, this, **kwargs):
         try:
@@ -230,6 +227,7 @@ class Recovery(Proclet):
     def pro_complete(self, this, **kwargs):
         yield
 
+
 def mission():
     channels = {"uplink": Channel(), "beacon": Channel()}
     v = Vehicle.create(name="Space vehicle", channels=channels)
@@ -237,8 +235,9 @@ def mission():
     v.group = [c.uid]
     return (c, v)
 
+
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, style="{", format="{message}")
+    logging.basicConfig(level=logging.INFO, style="{", format="{proclet.name:>16}|{funcName:>14}|{message}")
     procs = mission()
     for n in range(16):
         for p in procs:
