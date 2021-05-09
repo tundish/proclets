@@ -84,10 +84,11 @@ class Channel:
 
     def send(self, **kwargs):
         kwargs["channel"] = kwargs.get("channel", self)
-        item = Performative(**kwargs)
-        sent = self.put(item)
-        for i in range(sent):
-            yield item
+        msg = Performative(**kwargs)
+        msg.connect = msg.connect or msg.uid
+        sent = self.put(msg)
+        for i in range(sent or 0):
+            yield msg
 
     def receive(self, p: Proclet, party=None):
         while not self.empty(p.uid, party):

@@ -18,6 +18,7 @@
 
 import queue
 import unittest
+import uuid
 
 from proclets.channel import Channel
 from proclets.types import Performative
@@ -87,3 +88,12 @@ class ChannelTests(unittest.TestCase):
         self.assertTrue(c.empty(0))
         self.assertTrue(c.empty(0, party=1))
         self.assertFalse(c.empty(0, party=2))
+
+    def test_send_one(self):
+        c = Channel()
+
+        rv = next(c.send(group=[0]))
+        self.assertIsInstance(rv, Performative)
+        self.assertIsInstance(rv.uid, uuid.UUID)
+        self.assertEqual(rv.uid, rv.connect)
+
