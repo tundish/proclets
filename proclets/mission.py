@@ -43,7 +43,7 @@ class Control(Proclet):
         return {
             self.pro_launch: [self.pro_separation],
             self.pro_separation: [self.pro_reentry],
-            self.pro_reentry: [self.pro_recovery],
+            self.pro_reentry: [self.pro_recovery, self.pro_reentry],
             self.pro_recovery: [self.pro_recovery, self.pro_complete],
             self.pro_complete: [],
         }
@@ -80,9 +80,10 @@ class Control(Proclet):
             self.tasks.add(sync.sender)
             v = self.population[sync.sender].name.lower()
             logging.info(f"Observing reentry of {v}", extra={"proclet": self})
-            yield None
+        yield None
 
     def pro_recovery(self, this, **kwargs):
+        logging.info(f"Recovery?", extra={"proclet": self})
         try:
             msg = self.beacon.get(self.uid)
         except queue.Empty:
@@ -162,11 +163,12 @@ class Vehicle(Proclet):
             yield None
 
     def pro_reentry(self, this, **kwargs):
-        logging.info("Re-entering atmosphere", extra={"proclet": self})
-        yield from self.beacon.send(
-            sender=self.uid, group=self.group,
-            action=this.__name__,
-        )
+        if not self.tally[this.__name__]:
+            logging.info("Re-entering atmosphere", extra={"proclet": self})
+            yield from self.beacon.send(
+                sender=self.uid, group=self.group,
+                action=this.__name__,
+            )
         yield None
 
     def pro_recovery(self, this, **kwargs):
