@@ -17,8 +17,10 @@
 # along with proclets.  If not, see <http://www.gnu.org/licenses/>.
 
 import enum
+import functools
 import itertools
 import logging
+import operator
 import random
 import sys
 import queue
@@ -207,13 +209,21 @@ class Recovery(Proclet):
             self.pro_complete: [],
         }
 
-    @property
+    @functools.cached_property
     def control(self):
-        return next((m.sender for m in self.channels["vhf"].store[self.uid] if m.action == Init.request), None)
+        return next(m.sender for m in self.pending if m.action == Init.request)
 
     @property
     def targets(self):
-        return next((m.context for m in self.channels["vhf"].store[self.uid] if m.action == Init.request), None)
+        return next(m.context for m in self.pending if m.action == Init.request)
+
+    @property
+    def pending(self):
+        return next(
+            (msgs for msgs in self.channels["vhf"].view(self.uid)
+            if {m.action for m in msgs}.isdisjoint({Exit.abandon, Exit.deliver})),
+            None
+        )
 
     def pro_recovery(self, this, **kwargs):
         if not self.targets:
@@ -229,9 +239,9 @@ class Recovery(Proclet):
                 logging.info("Commencing search for {vehicle}", extra={"proclet": self})
             except (StopIteration, queue.Empty):
                 yield None
-                return
 
         for t in self.targets:
+            vehicle = self.population[t].name.lower()
             if random.random() < self.luck:
                 yield from self.channels["beacon"].send(
                     sender=self.uid, group={t},
@@ -241,13 +251,13 @@ class Recovery(Proclet):
                     sender=self.uid, group={self.control},
                     action=Exit.deliver,
                 )
-                logging.info("Rendezvous on beacon", extra={"proclet": self})
+                logging.info(f"Rendezvous on beacon with {vehicle}", extra={"proclet": self})
             else:
                 yield from self.channels["vhf"].send(
                     sender=self.uid, group={self.control},
                     action=Exit.abandon,
                 )
-                logging.info("Abandoning search", extra={"proclet": self})
+                logging.info(f"Abandoning search for {vehicle}", extra={"proclet": self})
         yield None
 
     def pro_complete(self, this, **kwargs):

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 #   encoding: utf-8
 
 # This file is part of proclets.
@@ -22,6 +23,8 @@ from dataclasses import dataclass
 from dataclasses import field
 import enum
 import functools
+import itertools
+import operator
 import queue
 import time
 import uuid
@@ -112,3 +115,9 @@ class Channel:
                 )
             elif m.action in actions:
                 yield action
+
+    def view(self, uid):
+        rv = sorted(self.store[uid], key=operator.attrgetter("connect"))
+        for grp, msgs in itertools.groupby(rv, key=operator.attrgetter("connect")):
+            yield list(msgs)
+
