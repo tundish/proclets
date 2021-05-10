@@ -46,7 +46,7 @@ class Control(Proclet):
             self.pro_launch: [self.pro_separation],
             self.pro_separation: [self.pro_reentry],
             self.pro_reentry: [self.pro_recovery, self.pro_reentry],
-            self.pro_recovery: [self.pro_recovery, self.pro_complete],
+            self.pro_recovery: [self.pro_complete],
             self.pro_complete: [],
         }
 
@@ -98,20 +98,25 @@ class Control(Proclet):
             yield None
 
     def pro_recovery(self, this, **kwargs):
-        targets = [i.target for i in self.domain]
-        for p in self.domain:
-            if not p.duty:
-                yield from self.vhf.send(
-                    sender=self.uid, group={p.uid},
-                    action=Init.request, context={p.target},
-                )
-                vehicle = self.population[p.target].name.lower()
-                logging.info(f"Team {p.uid.hex[:3]} briefed for recovery of {vehicle}", extra={"proclet": self})
-                yield None
         logging.info(self.recoveries, extra={"proclet": self})
+        targets = {i.target for i in self.domain} - {next(iter(i.context)) for i in self.recoveries}
+        if not targets:
+            yield None
+
+        try:
+            p = next(i for i in self.domain if not i.duty)
+            t = next(iter(targets))
+            yield from self.vhf.send(
+                sender=self.uid, group={p.uid},
+                action=Init.request, context={t},
+            )
+            vehicle = self.population[t].name.lower()
+            logging.info(f"Team {p.uid.hex[:3]} briefed for recovery of {vehicle}", extra={"proclet": self})
+        except StopIteration:
+            return
 
     def pro_complete(self, this, **kwargs):
-        yield
+        yield None
 
 
 class Recovery(Proclet):
@@ -139,6 +144,7 @@ class Recovery(Proclet):
         )
 
     def pro_tasking(self, this, **kwargs):
+        logging.info(self.duty, extra={"proclet": self})
         try:
             m = next(
                 self.channels["vhf"].respond(
@@ -146,22 +152,22 @@ class Recovery(Proclet):
                     actions={Init.request: Init.promise},
                 )
             )
-            logging.info(m, extra={"proclet": self})
-            vehicle = self.population[next(iter(self.duty.context))].name.lower()
-            logging.info(f"Commencing search for {vehicle}", extra={"proclet": self})
             yield None
         except (StopIteration, queue.Empty):
             return
 
     def pro_recovery(self, this, **kwargs):
         vehicle = self.population[next(iter(self.duty.context))].name.lower()
+        logging.info(f"Commencing search for {vehicle}", extra={"proclet": self})
         if random.random() < self.luck:
             yield from self.channels["beacon"].send(
                 sender=self.uid, group=self.duty.context,
+                context=self.duty.context,
                 action=this.__name__,
             )
             yield from self.channels["vhf"].send(
                 sender=self.uid, group={self.duty.sender},
+                context=self.duty.context,
                 action=Exit.deliver,
             )
             logging.info(f"Rendezvous with {vehicle}", extra={"proclet": self})
@@ -169,6 +175,7 @@ class Recovery(Proclet):
         else:
             yield from self.channels["vhf"].send(
                 sender=self.uid, group={self.duty.sender},
+                context=self.duty.context,
                 action=Exit.abandon,
             )
             logging.info(f"Abandoning search for {vehicle}", extra={"proclet": self})
@@ -193,7 +200,7 @@ class Vehicle(Proclet):
             self.pro_launch: [self.pro_separation],
             self.pro_separation: [self.pro_orbit, self.pro_reentry],
             self.pro_orbit: [self.pro_reentry],
-            self.pro_recovery: [self.pro_recovery, self.pro_complete],
+            self.pro_recovery: [self.pro_complete],
             self.pro_complete: [],
         }
 
@@ -248,10 +255,10 @@ class Vehicle(Proclet):
                 i for i in self.channels["beacon"].receive(self, this)
                 if i.action == this.__name__
             )
+            logging.info("Signing off", extra={"proclet": self})
+            yield None
         except StopIteration:
             return
-        else:
-            yield None
 
     def pro_complete(self, this, **kwargs):
         try:
@@ -262,7 +269,6 @@ class Vehicle(Proclet):
         except StopIteration:
             return
         else:
-            yield sync
             yield None
 
 
@@ -280,7 +286,7 @@ if __name__ == "__main__":
         level=logging.INFO,
     )
     procs = mission()
-    for n in range(32):
+    for n in range(16):
         for p in procs:
             flow = list(p())
             for i in flow:
