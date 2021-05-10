@@ -80,12 +80,18 @@ class Control(Proclet):
         except StopIteration:
             pass
         else:
-            self.tasks[sync.sender] = None
             vehicle = self.population[sync.sender].name.lower()
             logging.info(f"Observing reentry of {vehicle}", extra={"proclet": self})
-        yield None
+            channels = {k: self.channels[k] for k in ("beacon", "vhf")}
+            yield Recovery.create(
+                name="Recovery Team",
+                channels=channels,
+                group=[self.uid],
+            )
+            yield None
 
     def pro_recovery(self, this, **kwargs):
+        print(self.domain)
         for k, v in self.tasks.items():
             if v is None:
                 channels = {k: self.channels[k] for k in ("beacon", "vhf")}
@@ -205,7 +211,7 @@ class Recovery(Proclet):
     @property
     def dag(self):
         return {
-            self.pro_recovery: [self.pro_recovery, self.pro_complete],
+            self.pro_recovery: [self.pro_complete],
             self.pro_complete: [],
         }
 
@@ -215,14 +221,14 @@ class Recovery(Proclet):
 
     @property
     def targets(self):
-        return next(m.context for m in self.pending if m.action == Init.request)
+        return next((m.context for m in self.pending if m.action == Init.request), set())
 
     @property
     def pending(self):
         return next(
             (msgs for msgs in self.channels["vhf"].view(self.uid)
             if {m.action for m in msgs}.isdisjoint({Exit.abandon, Exit.deliver})),
-            None
+            []
         )
 
     def pro_recovery(self, this, **kwargs):
@@ -238,27 +244,28 @@ class Recovery(Proclet):
                 vehicle = self.population[next(iter(self.targets))].name.lower()
                 logging.info("Commencing search for {vehicle}", extra={"proclet": self})
             except (StopIteration, queue.Empty):
-                yield None
+                return
 
-        for t in self.targets:
-            vehicle = self.population[t].name.lower()
-            if random.random() < self.luck:
-                yield from self.channels["beacon"].send(
-                    sender=self.uid, group={t},
-                    action=this.__name__,
-                )
-                yield from self.channels["vhf"].send(
-                    sender=self.uid, group={self.control},
-                    action=Exit.deliver,
-                )
-                logging.info(f"Rendezvous on beacon with {vehicle}", extra={"proclet": self})
-            else:
-                yield from self.channels["vhf"].send(
-                    sender=self.uid, group={self.control},
-                    action=Exit.abandon,
-                )
-                logging.info(f"Abandoning search for {vehicle}", extra={"proclet": self})
-        yield None
+        t = next(iter(self.targets))
+        vehicle = self.population[t].name.lower()
+        if random.random() < self.luck:
+            yield from self.channels["beacon"].send(
+                sender=self.uid, group={t},
+                action=this.__name__,
+            )
+            yield from self.channels["vhf"].send(
+                sender=self.uid, group={self.control},
+                action=Exit.deliver,
+            )
+            logging.info(f"Rendezvous on beacon with {vehicle}", extra={"proclet": self})
+            yield None
+        else:
+            yield from self.channels["vhf"].send(
+                sender=self.uid, group={self.control},
+                action=Exit.abandon,
+            )
+            logging.info(f"Abandoning search for {vehicle}", extra={"proclet": self})
+            yield None
 
     def pro_complete(self, this, **kwargs):
         yield
