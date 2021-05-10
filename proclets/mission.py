@@ -91,6 +91,8 @@ class Control(Proclet):
             yield None
 
     def pro_recovery(self, this, **kwargs):
+        reports = [i for i in self.uplink.receive(self, this) if i.action in (Exit.deliver, Exit.abandon)]
+        logging.info(reports, extra={"proclet": self})
         for p in self.domain:
             if not p.pending:
                 yield from self.vhf.send(
@@ -204,6 +206,7 @@ class Recovery(Proclet):
     @property
     def dag(self):
         return {
+            self.pro_tasking: [self.pro_recovery],
             self.pro_recovery: [self.pro_complete],
             self.pro_complete: [],
         }
@@ -224,8 +227,10 @@ class Recovery(Proclet):
             []
         )
 
-    def pro_recovery(self, this, **kwargs):
-        if not self.targets:
+    def pro_tasking(self, this, **kwargs):
+        if self.targets:
+            yield None
+        else:
             try:
                 m = next(
                     self.channels["vhf"].respond(
@@ -238,6 +243,7 @@ class Recovery(Proclet):
             except (StopIteration, queue.Empty):
                 return
 
+    def pro_recovery(self, this, **kwargs):
         t = next(iter(self.targets))
         vehicle = self.population[t].name.lower()
         if random.random() < self.luck:
@@ -249,7 +255,7 @@ class Recovery(Proclet):
                 sender=self.uid, group={self.control},
                 action=Exit.deliver,
             )
-            logging.info(f"Rendezvous on beacon with {vehicle}", extra={"proclet": self})
+            logging.info(f"Rendezvous with {vehicle}", extra={"proclet": self})
             yield None
         else:
             yield from self.channels["vhf"].send(
@@ -277,7 +283,7 @@ if __name__ == "__main__":
         level=logging.INFO,
     )
     procs = mission()
-    for n in range(16):
+    for n in range(32):
         for p in procs:
             flow = list(p())
             for i in flow:
