@@ -50,6 +50,13 @@ class Control(Proclet):
             self.pro_complete: [],
         }
 
+    @property
+    def recoveries(self):
+        return [
+            msgs[-1] for msgs in self.channels["vhf"].view(self.uid)
+            if msgs[-1].action == Exit.deliver
+        ]
+
     def pro_launch(self, this, **kwargs):
         logging.info("We are go for launch", extra={"proclet": self})
         yield from self.uplink.send(
@@ -91,6 +98,7 @@ class Control(Proclet):
             yield None
 
     def pro_recovery(self, this, **kwargs):
+        targets = [i.target for i in self.domain]
         for p in self.domain:
             if not p.pending:
                 yield from self.vhf.send(
@@ -100,6 +108,7 @@ class Control(Proclet):
                 vehicle = self.population[p.target].name.lower()
                 logging.info(f"Team {p.uid.hex[:3]} briefed for recovery of {vehicle}", extra={"proclet": self})
                 yield None
+        logging.info(self.recoveries, extra={"proclet": self})
 
     def pro_complete(self, this, **kwargs):
         yield
@@ -117,8 +126,8 @@ class Recovery(Proclet):
     def dag(self):
         return {
             self.pro_tasking: [self.pro_recovery],
-            self.pro_recovery: [self.pro_complete],
-            self.pro_complete: [],
+            self.pro_recovery: [self.pro_standby],
+            self.pro_standby: [self.pro_tasking],
         }
 
     @functools.cached_property
@@ -145,6 +154,7 @@ class Recovery(Proclet):
                     actions={Init.request: Init.promise},
                 )
             )
+            logging.info(m, extra={"proclet": self})
             vehicle = self.population[next(iter(self.targets))].name.lower()
             logging.info(f"Commencing search for {vehicle}", extra={"proclet": self})
             yield None
@@ -173,7 +183,8 @@ class Recovery(Proclet):
             logging.info(f"Abandoning search for {vehicle}", extra={"proclet": self})
             yield None
 
-    def pro_complete(self, this, **kwargs):
+    def pro_standby(self, this, **kwargs):
+        logging.info("Standing by", extra={"proclet": self})
         yield
 
 
