@@ -100,7 +100,7 @@ class Control(Proclet):
     def pro_recovery(self, this, **kwargs):
         targets = [i.target for i in self.domain]
         for p in self.domain:
-            if not p.pending:
+            if not p.duty:
                 yield from self.vhf.send(
                     sender=self.uid, group={p.uid},
                     action=Init.request, context={p.target},
@@ -130,20 +130,12 @@ class Recovery(Proclet):
             self.pro_standby: [self.pro_tasking],
         }
 
-    @functools.cached_property
-    def control(self):
-        return next(m.sender for m in self.pending if m.action == Init.request)
-
     @property
-    def targets(self):
-        return next((m.context for m in self.pending if m.action == Init.request), set())
-
-    @property
-    def pending(self):
+    def duty(self):
         return next(
-            (msgs for msgs in self.channels["vhf"].view(self.uid)
-            if Exit.deliver not in {m.action for m in msgs}),
-            []
+            (msgs[0] for msgs in self.channels["vhf"].view(self.uid)
+            if {m.action for m in msgs}.isdisjoint({Exit.abandon, Exit.deliver})),
+            None
         )
 
     def pro_tasking(self, this, **kwargs):
@@ -155,29 +147,28 @@ class Recovery(Proclet):
                 )
             )
             logging.info(m, extra={"proclet": self})
-            vehicle = self.population[next(iter(self.targets))].name.lower()
+            vehicle = self.population[next(iter(self.duty.context))].name.lower()
             logging.info(f"Commencing search for {vehicle}", extra={"proclet": self})
             yield None
         except (StopIteration, queue.Empty):
             return
 
     def pro_recovery(self, this, **kwargs):
-        t = next(iter(self.targets))
-        vehicle = self.population[t].name.lower()
+        vehicle = self.population[next(iter(self.duty.context))].name.lower()
         if random.random() < self.luck:
             yield from self.channels["beacon"].send(
-                sender=self.uid, group={t},
+                sender=self.uid, group=self.duty.context,
                 action=this.__name__,
             )
             yield from self.channels["vhf"].send(
-                sender=self.uid, group={self.control},
+                sender=self.uid, group={self.duty.sender},
                 action=Exit.deliver,
             )
             logging.info(f"Rendezvous with {vehicle}", extra={"proclet": self})
             yield None
         else:
             yield from self.channels["vhf"].send(
-                sender=self.uid, group={self.control},
+                sender=self.uid, group={self.duty.sender},
                 action=Exit.abandon,
             )
             logging.info(f"Abandoning search for {vehicle}", extra={"proclet": self})
