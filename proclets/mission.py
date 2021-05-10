@@ -39,7 +39,6 @@ class Control(Proclet):
         self.beacon = self.channels.get("beacon")
         self.uplink = self.channels.get("uplink")
         self.vhf = self.channels.get("vhf")
-        self.tasks = {}
 
     @property
     def dag(self):
@@ -85,29 +84,22 @@ class Control(Proclet):
             channels = {k: self.channels[k] for k in ("beacon", "vhf")}
             yield Recovery.create(
                 name="Recovery Team",
+                target=sync.sender,
                 channels=channels,
                 group=[self.uid],
             )
             yield None
 
     def pro_recovery(self, this, **kwargs):
-        print(self.domain)
-        for k, v in self.tasks.items():
-            if v is None:
-                channels = {k: self.channels[k] for k in ("beacon", "vhf")}
-                r = Recovery.create(
-                    name="Recovery Team",
-                    channels=channels,
-                    group=[self.uid],
-                )
-                self.tasks[k] = r.uid
-                yield r
+        for p in self.domain:
+            if not p.pending:
                 yield from self.vhf.send(
-                    sender=self.uid, group={r.uid},
-                    action=Init.request, context={k},
+                    sender=self.uid, group={p.uid},
+                    action=Init.request, context={p.target},
                 )
-                vehicle = self.population[k].name.lower()
-                logging.info(f"Team {r.uid.hex[:3]} briefed for recovery of {vehicle}", extra={"proclet": self})
+                vehicle = self.population[p.target].name.lower()
+                logging.info(f"Team {p.uid.hex[:3]} briefed for recovery of {vehicle}", extra={"proclet": self})
+                yield None
 
     def pro_complete(self, this, **kwargs):
         yield
@@ -204,8 +196,9 @@ class Vehicle(Proclet):
 class Recovery(Proclet):
 
 
-    def __init__(self, *args, luck=None, **kwargs):
+    def __init__(self, target, *args, luck=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.target = target
         self.luck = random.triangular(0, 1, 3/4) if luck is None else luck
 
     @property
@@ -240,7 +233,6 @@ class Recovery(Proclet):
                         actions={Init.request: Init.promise},
                     )
                 )
-                yield m
                 vehicle = self.population[next(iter(self.targets))].name.lower()
                 logging.info("Commencing search for {vehicle}", extra={"proclet": self})
             except (StopIteration, queue.Empty):
