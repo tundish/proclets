@@ -91,8 +91,6 @@ class Control(Proclet):
             yield None
 
     def pro_recovery(self, this, **kwargs):
-        reports = [i for i in self.uplink.receive(self, this) if i.action in (Exit.deliver, Exit.abandon)]
-        logging.info(reports, extra={"proclet": self})
         for p in self.domain:
             if not p.pending:
                 yield from self.vhf.send(
@@ -102,6 +100,78 @@ class Control(Proclet):
                 vehicle = self.population[p.target].name.lower()
                 logging.info(f"Team {p.uid.hex[:3]} briefed for recovery of {vehicle}", extra={"proclet": self})
                 yield None
+
+    def pro_complete(self, this, **kwargs):
+        yield
+
+
+class Recovery(Proclet):
+
+
+    def __init__(self, target, *args, luck=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.target = target
+        self.luck = random.triangular(0, 1, 3/4) if luck is None else luck
+
+    @property
+    def dag(self):
+        return {
+            self.pro_tasking: [self.pro_recovery],
+            self.pro_recovery: [self.pro_complete],
+            self.pro_complete: [],
+        }
+
+    @functools.cached_property
+    def control(self):
+        return next(m.sender for m in self.pending if m.action == Init.request)
+
+    @property
+    def targets(self):
+        return next((m.context for m in self.pending if m.action == Init.request), set())
+
+    @property
+    def pending(self):
+        return next(
+            (msgs for msgs in self.channels["vhf"].view(self.uid)
+            if Exit.deliver not in {m.action for m in msgs}),
+            []
+        )
+
+    def pro_tasking(self, this, **kwargs):
+        try:
+            m = next(
+                self.channels["vhf"].respond(
+                    self, this,
+                    actions={Init.request: Init.promise},
+                )
+            )
+            vehicle = self.population[next(iter(self.targets))].name.lower()
+            logging.info(f"Commencing search for {vehicle}", extra={"proclet": self})
+            yield None
+        except (StopIteration, queue.Empty):
+            return
+
+    def pro_recovery(self, this, **kwargs):
+        t = next(iter(self.targets))
+        vehicle = self.population[t].name.lower()
+        if random.random() < self.luck:
+            yield from self.channels["beacon"].send(
+                sender=self.uid, group={t},
+                action=this.__name__,
+            )
+            yield from self.channels["vhf"].send(
+                sender=self.uid, group={self.control},
+                action=Exit.deliver,
+            )
+            logging.info(f"Rendezvous with {vehicle}", extra={"proclet": self})
+            yield None
+        else:
+            yield from self.channels["vhf"].send(
+                sender=self.uid, group={self.control},
+                action=Exit.abandon,
+            )
+            logging.info(f"Abandoning search for {vehicle}", extra={"proclet": self})
+            yield None
 
     def pro_complete(self, this, **kwargs):
         yield
@@ -179,7 +249,6 @@ class Vehicle(Proclet):
         except StopIteration:
             return
         else:
-            yield sync
             yield None
 
     def pro_complete(self, this, **kwargs):
@@ -193,80 +262,6 @@ class Vehicle(Proclet):
         else:
             yield sync
             yield None
-
-
-class Recovery(Proclet):
-
-
-    def __init__(self, target, *args, luck=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.target = target
-        self.luck = random.triangular(0, 1, 3/4) if luck is None else luck
-
-    @property
-    def dag(self):
-        return {
-            self.pro_tasking: [self.pro_recovery],
-            self.pro_recovery: [self.pro_complete],
-            self.pro_complete: [],
-        }
-
-    @functools.cached_property
-    def control(self):
-        return next(m.sender for m in self.pending if m.action == Init.request)
-
-    @property
-    def targets(self):
-        return next((m.context for m in self.pending if m.action == Init.request), set())
-
-    @property
-    def pending(self):
-        return next(
-            (msgs for msgs in self.channels["vhf"].view(self.uid)
-            if {m.action for m in msgs}.isdisjoint({Exit.abandon, Exit.deliver})),
-            []
-        )
-
-    def pro_tasking(self, this, **kwargs):
-        if self.targets:
-            yield None
-        else:
-            try:
-                m = next(
-                    self.channels["vhf"].respond(
-                        self, this,
-                        actions={Init.request: Init.promise},
-                    )
-                )
-                vehicle = self.population[next(iter(self.targets))].name.lower()
-                logging.info("Commencing search for {vehicle}", extra={"proclet": self})
-            except (StopIteration, queue.Empty):
-                return
-
-    def pro_recovery(self, this, **kwargs):
-        t = next(iter(self.targets))
-        vehicle = self.population[t].name.lower()
-        if random.random() < self.luck:
-            yield from self.channels["beacon"].send(
-                sender=self.uid, group={t},
-                action=this.__name__,
-            )
-            yield from self.channels["vhf"].send(
-                sender=self.uid, group={self.control},
-                action=Exit.deliver,
-            )
-            logging.info(f"Rendezvous with {vehicle}", extra={"proclet": self})
-            yield None
-        else:
-            yield from self.channels["vhf"].send(
-                sender=self.uid, group={self.control},
-                action=Exit.abandon,
-            )
-            logging.info(f"Abandoning search for {vehicle}", extra={"proclet": self})
-            yield None
-
-    def pro_complete(self, this, **kwargs):
-        yield
 
 
 def mission():
