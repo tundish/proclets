@@ -46,7 +46,7 @@ class Control(Proclet):
             self.pro_launch: [self.pro_separation],
             self.pro_separation: [self.pro_reentry],
             self.pro_reentry: [self.pro_recovery, self.pro_reentry],
-            self.pro_recovery: [self.pro_complete],
+            self.pro_recovery: [self.pro_reentry, self.pro_complete],
             self.pro_complete: [],
         }
 
@@ -98,7 +98,6 @@ class Control(Proclet):
             yield None
 
     def pro_recovery(self, this, **kwargs):
-        logging.info(self.recoveries, extra={"proclet": self})
         targets = {i.target for i in self.domain} - {next(iter(i.context)) for i in self.recoveries}
         if not targets:
             yield None
@@ -112,6 +111,7 @@ class Control(Proclet):
             )
             vehicle = self.population[t].name.lower()
             logging.info(f"Team {p.uid.hex[:3]} briefed for recovery of {vehicle}", extra={"proclet": self})
+            yield None
         except StopIteration:
             return
 
@@ -137,7 +137,6 @@ class Recovery(Proclet):
         }
 
     def pro_tasking(self, this, **kwargs):
-        logging.info(self.duty, extra={"proclet": self})
         try:
             self.duty = list(
                 self.channels["vhf"].respond(
@@ -168,6 +167,7 @@ class Recovery(Proclet):
 
     def pro_standby(self, this, **kwargs):
         logging.info("Standing by", extra={"proclet": self})
+        self.duty = None
         yield
 
 
@@ -271,7 +271,7 @@ if __name__ == "__main__":
         level=logging.INFO,
     )
     procs = mission()
-    for n in range(16):
+    for n in range(26):
         for p in procs:
             flow = list(p())
             for i in flow:
