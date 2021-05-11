@@ -73,7 +73,7 @@ class Channel:
         for uid in item.group:
             for party in self.ready[uid] or [None]:
                 self.ready[uid][party] += 1
-            self.store[uid].appendleft(item)
+            self.store[uid].append(item)
             n += 1
         return n
 
@@ -81,8 +81,8 @@ class Channel:
         if self.empty(uid, party=party):
             raise queue.Empty
 
+        item = self.store[uid][-self.ready[uid][party]]
         self.ready[uid][party] -= 1
-        item = self.store[uid][self.ready[uid][party]]
         return item
 
     def send(self, **kwargs):

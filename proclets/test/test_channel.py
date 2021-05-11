@@ -18,7 +18,6 @@
 
 import itertools
 import queue
-import time
 from types import SimpleNamespace as SN
 import unittest
 import uuid
@@ -112,7 +111,6 @@ class ChannelTests(unittest.TestCase):
             (Init.request, Init.promise, Exit.deliver, Init.request, Init.promise, Exit.abandon)
         )):
             with self.subTest(n=n, a=a):
-                time.sleep(0.001)  # Poor clock resolution on Windows
                 if a == Init.request:
                     init = next(c.send(sender=q.uid, group={p.uid}, action=a))
                 elif a == Init.promise:
