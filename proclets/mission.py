@@ -126,6 +126,7 @@ class Recovery(Proclet):
         super().__init__(*args, **kwargs)
         self.target = target
         self.luck = random.triangular(0, 1, 3/4) if luck is None else luck
+        self.duty = None
 
     @property
     def dag(self):
@@ -135,25 +136,17 @@ class Recovery(Proclet):
             self.pro_standby: [self.pro_tasking],
         }
 
-    @property
-    def duty(self):
-        return next(
-            (msgs[0] for msgs in self.channels["vhf"].view(self.uid)
-            if {m.action for m in msgs}.isdisjoint({Exit.abandon, Exit.deliver})),
-            None
-        )
-
     def pro_tasking(self, this, **kwargs):
         logging.info(self.duty, extra={"proclet": self})
         try:
-            m = next(
+            self.duty = list(
                 self.channels["vhf"].respond(
                     self, this,
                     actions={Init.request: Init.promise},
                 )
-            )
+            )[0]
             yield None
-        except (StopIteration, queue.Empty):
+        except IndexError:
             return
 
     def pro_recovery(self, this, **kwargs):
@@ -165,19 +158,11 @@ class Recovery(Proclet):
                 context=self.duty.context,
                 action=this.__name__,
             )
-            yield from self.channels["vhf"].send(
-                sender=self.uid, group={self.duty.sender},
-                context=self.duty.context,
-                action=Exit.deliver,
-            )
+            yield self.channels["vhf"].reply(self, self.duty, action=Exit.deliver)
             logging.info(f"Rendezvous with {vehicle}", extra={"proclet": self})
             yield None
         else:
-            yield from self.channels["vhf"].send(
-                sender=self.uid, group={self.duty.sender},
-                context=self.duty.context,
-                action=Exit.abandon,
-            )
+            yield self.channels["vhf"].reply(self, self.duty, action=Exit.abandon)
             logging.info(f"Abandoning search for {vehicle}", extra={"proclet": self})
             yield None
 
