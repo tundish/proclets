@@ -111,6 +111,7 @@ class Channel:
         ):
         while not self.empty(p.uid, party):
             m = self.get(p.uid, party)
+            yield m
             action = actions and actions.get(m.action)
             content = contents and contents.get(m.action)
             context = m.context and m.context.copy().union(context or set())
@@ -122,10 +123,12 @@ class Channel:
                     context=context
                 )
             elif m.action in actions:
-                yield action
+                yield None
 
     def view(self, uid):
-        rv = sorted(self.store[uid], key=operator.attrgetter("connect", "ts"))
-        for grp, msgs in itertools.groupby(rv, key=operator.attrgetter("connect")):
-            yield list(msgs)
+        msgs = sorted(itertools.chain.from_iterable(self.store.values()), key=operator.attrgetter("ts"))
+        rv = defaultdict(list)
+        for m in msgs:
+            rv[m.connect].append(m)
+        return rv.values()
 

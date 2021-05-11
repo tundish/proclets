@@ -18,6 +18,7 @@
 
 import itertools
 import queue
+import time
 from types import SimpleNamespace as SN
 import unittest
 import uuid
@@ -111,12 +112,16 @@ class ChannelTests(unittest.TestCase):
             (Init.request, Init.promise, Exit.deliver, Init.request, Init.promise, Exit.abandon)
         )):
             with self.subTest(n=n, a=a):
+                time.sleep(0.001)  # Poor clock resolution on Windows
                 if a == Init.request:
                     init = next(c.send(sender=q.uid, group={p.uid}, action=a))
                 elif a == Init.promise:
                     rv = list(c.respond(p, actions={Init.request: a}))
-                    self.assertEqual(1, len(rv))
-                    self.assertEqual(init.connect, rv[0].connect)
+                    self.assertEqual(2, len(rv))
+                    self.assertEqual(init, rv[0])
+                    self.assertEqual(p.uid, rv[1].sender)
+                    self.assertEqual({q.uid}, rv[1].group)
+                    self.assertEqual(init.connect, rv[1].connect)
                 else:
                     rv = c.reply(p, init, action=a)
                     self.assertIsInstance(rv, Performative)
@@ -127,5 +132,10 @@ class ChannelTests(unittest.TestCase):
                 v = list(c.view(p.uid))
                 if n == 2:
                     self.assertEqual(1, len(v))
-                    self.assertEqual(3, len(v[0]), v)
+                    self.assertEqual(3, len(v[0]))
+                    self.assertEqual(Exit.deliver, v[0][-1].action, v[0])
+                elif n == 5:
+                    self.assertEqual(2, len(v))
+                    self.assertEqual(3, len(v[1]))
+                    self.assertEqual(Exit.abandon, v[1][-1].action, v[1])
 
