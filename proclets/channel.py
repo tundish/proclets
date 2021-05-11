@@ -97,6 +97,14 @@ class Channel:
         while not self.empty(p.uid, party):
             yield self.get(p.uid, party)
 
+    def reply(self, p: Proclet, m: Performative, party=None, **kwargs):
+        msg = Performative(**dict(
+            kwargs, sender=p.uid, group={m.sender},
+            channel=m.channel, connect=m.connect, context=m.context,
+        ))
+        if self.put(msg):
+            return msg
+
     def respond(
         self, p: Proclet, party=None,
         actions: dict=None, contents: dict=None, context: set=None,

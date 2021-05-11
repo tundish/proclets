@@ -104,16 +104,22 @@ class ChannelTests(unittest.TestCase):
     def test_view(self):
         c = Channel()
         p = SN(uid=uuid.uuid4())
+        q = SN(uid=uuid.uuid4())
+        connect = None
 
         for n, a in zip(range(8), itertools.cycle(
-                (Init.request, Init.promise, Exit.deliver, Init.request, Init.promise, Exit.abandon)
+            (Init.request, Init.promise, Exit.deliver, Init.request, Init.promise, Exit.abandon)
         )):
             with self.subTest(n=n, a=a):
                 if a == Init.request:
-                    rv = next(c.send(group={p.uid}))
-                    print(rv)
+                    msg = next(c.send(sender=q.uid, group={p.uid}, action=a))
+                    connect = msg.connect
                 elif a == Init.promise:
-                    rv = list(c.receive(p))
+                    rv = list(c.respond(p, actions={Init.request: a}))
                     self.assertEqual(1, len(rv))
-                    print(rv)
+                    self.assertEqual(connect, rv[0].connect)
+                else:
+                    rv = c.reply(p, msg, action=a)
+                    self.assertIsInstance(rv, Performative)
+                    self.assertEqual(connect, rv.connect)
 
