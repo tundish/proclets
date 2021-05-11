@@ -125,7 +125,7 @@ class Channel:
                 yield action
 
     def view(self, uid):
-        rv = sorted(self.store[uid], key=operator.attrgetter("connect"))
+        rv = sorted(self.store[uid], key=operator.attrgetter("connect", "ts"))
         for grp, msgs in itertools.groupby(rv, key=operator.attrgetter("connect")):
             yield list(msgs)
 
