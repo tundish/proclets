@@ -126,7 +126,7 @@ class Channel:
                 yield None
 
     def view(self, uid):
-        msgs = sorted(itertools.chain.from_iterable(self.store.values()), key=operator.attrgetter("ts", "action"))
+        msgs = sorted(itertools.chain.from_iterable(self.store.values()), key=operator.attrgetter("ts"))
         rv = defaultdict(list)
         for m in msgs:
             rv[m.connect].append(m)
