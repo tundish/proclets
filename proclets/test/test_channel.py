@@ -16,11 +16,15 @@
 # You should have received a copy of the GNU General Public License
 # along with proclets.  If not, see <http://www.gnu.org/licenses/>.
 
+import itertools
 import queue
+from types import SimpleNamespace as SN
 import unittest
 import uuid
 
 from proclets.channel import Channel
+from proclets.types import Init
+from proclets.types import Exit
 from proclets.types import Performative
 
 
@@ -96,4 +100,20 @@ class ChannelTests(unittest.TestCase):
         self.assertIsInstance(rv, Performative)
         self.assertIsInstance(rv.uid, uuid.UUID)
         self.assertEqual(rv.uid, rv.connect)
+
+    def test_view(self):
+        c = Channel()
+        p = SN(uid=uuid.uuid4())
+
+        for n, a in zip(range(8), itertools.cycle(
+                (Init.request, Init.promise, Exit.deliver, Init.request, Init.promise, Exit.abandon)
+        )):
+            with self.subTest(n=n, a=a):
+                if a == Init.request:
+                    rv = next(c.send(group={p.uid}))
+                    print(rv)
+                elif a == Init.promise:
+                    rv = list(c.receive(p))
+                    self.assertEqual(1, len(rv))
+                    print(rv)
 
