@@ -84,7 +84,7 @@ class Control(Proclet):
                 if i.action == this.__name__
             )
         except StopIteration:
-            pass
+            yield None
         else:
             vehicle = self.population[sync.sender].name.lower()
             logging.info(f"Observing reentry of {vehicle}", extra={"proclet": self})
@@ -271,7 +271,7 @@ if __name__ == "__main__":
         level=logging.INFO,
     )
     procs = mission()
-    for n in range(26):
+    for n in range(32):
         for p in procs:
             flow = list(p())
             for i in flow:
