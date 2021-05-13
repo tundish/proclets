@@ -18,12 +18,7 @@
 
 from collections import Counter
 from collections import defaultdict
-from dataclasses import dataclass
-from dataclasses import field
-import enum
 import functools
-import queue
-import time
 import uuid
 import weakref
 
@@ -49,7 +44,6 @@ class Proclet:
 
     @staticmethod
     def build_arcs(dag):
-        rv = defaultdict(set)
         n = 0
         for k, v in dag.items():
             if not n:

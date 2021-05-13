@@ -16,15 +16,9 @@
 # You should have received a copy of the GNU General Public License
 # along with proclets.  If not, see <http://www.gnu.org/licenses/>.
 
-import enum
-import functools
-import itertools
 import logging
-import operator
 import random
 import sys
-import queue
-import unittest
 
 from proclets.channel import Channel
 from proclets.proclet import Proclet
@@ -65,8 +59,9 @@ class Control(Proclet):
                 i for i in self.channels["uplink"].receive(self, this)
                 if i.action == this.__name__
             )
+            logging.debug(sync, extra={"proclet": self})
         except StopIteration:
-            pass
+            return
         else:
             logging.info("Copy your separation", extra={"proclet": self})
             yield
@@ -115,7 +110,6 @@ class Control(Proclet):
 
 
 class Recovery(Proclet):
-
 
     def __init__(self, target, *args, luck=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -188,6 +182,7 @@ class Vehicle(Proclet):
                 i for i in self.channels["uplink"].receive(self, this)
                 if i.action == this.__name__
             )
+            logging.debug(sync, extra={"proclet": self})
         except StopIteration:
             pass
         else:
@@ -233,6 +228,7 @@ class Vehicle(Proclet):
                 i for i in self.channels["beacon"].receive(self, this)
                 if i.action == this.__name__
             )
+            logging.debug(sync, extra={"proclet": self})
             logging.info("Signing off", extra={"proclet": self})
             yield
         except StopIteration:
