@@ -54,7 +54,9 @@ class ProcletTests(unittest.TestCase):
 
                     self.assertTrue(p)
 
-        vehicles = [i for i in Proclet.population.values() if isinstance(i, Vehicle)]
+        objs = set(procs).union({d for p in procs for d in p.domain})
+        control = next(i for i in objs if isinstance(i, Control))
+        vehicles = [i for i in objs if isinstance(i, Vehicle)]
         self.assertEqual(2, len(vehicles))
-        recoveries = [i for i in Proclet.population.values() if isinstance(i, Recovery)]
+        recoveries = [i for i in objs if isinstance(i, Recovery)]
         self.assertEqual(2, len(recoveries))
