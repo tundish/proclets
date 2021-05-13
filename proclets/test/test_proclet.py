@@ -17,6 +17,7 @@
 # along with proclets.  If not, see <http://www.gnu.org/licenses/>.
 
 import enum
+import itertools
 import random
 import sys
 import queue
@@ -28,6 +29,7 @@ from proclets.mission import Recovery
 from proclets.mission import Vehicle
 from proclets.mission import mission
 from proclets.proclet import Proclet
+from proclets.types import Termination
 
 
 class ProcletTests(unittest.TestCase):
@@ -46,13 +48,14 @@ class ProcletTests(unittest.TestCase):
     def test_flow(self):
         procs = mission()
 
-        for n in range(32):
-            for p in procs:
-                self.assertTrue(p.marking)
+        for n, p in enumerate(itertools.cycle(procs)):
+            self.assertTrue(p.marking)
+            try:
                 flow = list(p())
                 with self.subTest(n=n):
-
                     self.assertTrue(p)
+            except Termination:
+                break
 
         objs = set(procs).union({d for p in procs for d in p.domain})
         control = next(i for i in objs if isinstance(i, Control))

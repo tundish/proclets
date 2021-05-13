@@ -27,6 +27,8 @@ import queue
 import time
 import uuid
 
+class FlowException(Exception): pass
+class Termination(FlowException): pass
 
 class Init(enum.Enum):
 

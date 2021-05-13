@@ -30,6 +30,7 @@ from proclets.channel import Channel
 from proclets.proclet import Proclet
 from proclets.types import Init
 from proclets.types import Exit
+from proclets.types import Termination
 
 
 class Control(Proclet):
@@ -40,8 +41,7 @@ class Control(Proclet):
             self.pro_launch: [self.pro_separation],
             self.pro_separation: [self.pro_reentry],
             self.pro_reentry: [self.pro_recovery, self.pro_reentry],
-            self.pro_recovery: [self.pro_reentry, self.pro_complete],
-            self.pro_complete: [],
+            self.pro_recovery: [self.pro_recovery],
         }
 
     @property
@@ -57,7 +57,7 @@ class Control(Proclet):
             sender=self.uid, group=self.group,
             action=this.__name__,
         )
-        yield None
+        yield
 
     def pro_separation(self, this, **kwargs):
         try:
@@ -69,7 +69,7 @@ class Control(Proclet):
             pass
         else:
             logging.info("Copy your separation", extra={"proclet": self})
-            yield None
+            yield
 
     def pro_reentry(self, this, **kwargs):
         try:
@@ -78,7 +78,7 @@ class Control(Proclet):
                 if i.action == this.__name__
             )
         except StopIteration:
-            yield None
+            yield
         else:
             vehicle = self.population[sync.sender].name.lower()
             logging.info(f"Observing reentry of {vehicle}", extra={"proclet": self})
@@ -89,12 +89,15 @@ class Control(Proclet):
                 channels=channels,
                 group=[self.uid],
             )
-            yield None
+            yield
 
     def pro_recovery(self, this, **kwargs):
-        targets = {i.target for i in self.domain} - {next(iter(i.context)) for i in self.recoveries}
-        if not targets:
-            yield None
+        recoveries = {next(iter(i.context)): i for i in self.recoveries}
+        if len(recoveries) == 2:
+            logging.info("Mission complete", extra={"proclet": self})
+            raise Termination()
+
+        targets = {i.target for i in self.domain} - set(recoveries)
 
         try:
             p = next(i for i in self.domain if not i.duty)
@@ -105,12 +108,10 @@ class Control(Proclet):
             )
             vehicle = self.population[t].name.lower()
             logging.info(f"Team {p.uid.hex[:3]} briefed for recovery of {vehicle}", extra={"proclet": self})
-            yield None
         except StopIteration:
-            return
-
-    def pro_complete(self, this, **kwargs):
-        yield None
+            pass
+        finally:
+            yield
 
 
 class Recovery(Proclet):
@@ -138,7 +139,7 @@ class Recovery(Proclet):
                     actions={Init.request: Init.promise},
                 )
             )[0]
-            yield None
+            yield
         except IndexError:
             return
 
@@ -153,14 +154,14 @@ class Recovery(Proclet):
             )
             yield self.channels["vhf"].reply(self, self.duty, action=Exit.deliver)
             logging.info(f"Rendezvous with {vehicle}", extra={"proclet": self})
-            yield None
+            yield
         else:
             yield self.channels["vhf"].reply(self, self.duty, action=Exit.abandon)
             logging.info(f"Abandoning search for {vehicle}", extra={"proclet": self})
-            yield None
+            yield
 
     def pro_standby(self, this, **kwargs):
-        logging.info("Standing by", extra={"proclet": self})
+        logging.info(f"Team {self.uid.hex[:3]} standing by", extra={"proclet": self})
         self.duty = None
         yield
 
@@ -175,10 +176,10 @@ class Vehicle(Proclet):
     def dag(self):
         return {
             self.pro_launch: [self.pro_separation],
-            self.pro_separation: [self.pro_orbit, self.pro_reentry],
+            self.pro_separation: [self.pro_orbit],
             self.pro_orbit: [self.pro_reentry],
-            self.pro_recovery: [self.pro_complete],
-            self.pro_complete: [],
+            self.pro_reentry: [self.pro_recovery],
+            self.pro_recovery: [],
         }
 
     def pro_launch(self, this, **kwargs):
@@ -191,7 +192,7 @@ class Vehicle(Proclet):
             pass
         else:
             logging.info("Launch phase is complete", extra={"proclet": self})
-            yield None
+            yield
 
     def pro_separation(self, this, **kwargs):
         logging.info("Separation initiated", extra={"proclet": self})
@@ -205,17 +206,17 @@ class Vehicle(Proclet):
             sender=self.uid, group=self.group, context={v.uid},
             action=this.__name__,
         )
-        yield None
+        yield
 
     def pro_orbit(self, this, **kwargs):
         if self.orbits is None:
-            yield None
+            yield
 
         if self.orbits < 3:
             self.orbits += 1
             logging.info(f"In orbit {self.orbits}", extra={"proclet": self})
         else:
-            yield None
+            yield
 
     def pro_reentry(self, this, **kwargs):
         if not self.tally[this.__name__]:
@@ -224,7 +225,7 @@ class Vehicle(Proclet):
                 sender=self.uid, group=self.group,
                 action=this.__name__,
             )
-        yield None
+        yield
 
     def pro_recovery(self, this, **kwargs):
         try:
@@ -233,20 +234,9 @@ class Vehicle(Proclet):
                 if i.action == this.__name__
             )
             logging.info("Signing off", extra={"proclet": self})
-            yield None
+            yield
         except StopIteration:
             return
-
-    def pro_complete(self, this, **kwargs):
-        try:
-            sync = next(
-                i for i in self.channels["beacon"].receive(self, this)
-                if i.action == this.__name__
-            )
-        except StopIteration:
-            return
-        else:
-            yield None
 
 
 def mission():
@@ -262,9 +252,17 @@ if __name__ == "__main__":
         style="{", format="{proclet.name:>16}|{funcName:>14}|{message}",
         level=logging.INFO,
     )
-    procs = mission()
-    for n in range(32):
+    procs = (c, v) = mission()
+    rv = None
+    while rv is None:
         for p in procs:
-            flow = list(p())
+            try:
+                flow = list(p())
+            except Termination:
+                rv = 0
+            except Exception:
+                rv = 1
             for i in flow:
                 logging.debug(i, extra={"proclet": p})
+
+    sys.exit(rv)
