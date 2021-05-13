@@ -6,6 +6,11 @@
 Change Log
 ::::::::::
 
+0.5.0
+=====
+
+* Space mission is working and now the main example.
+
 0.4.0
 =====
 
