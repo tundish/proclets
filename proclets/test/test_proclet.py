@@ -46,7 +46,7 @@ class ProcletTests(unittest.TestCase):
     def test_flow(self):
         procs = mission()
 
-        for n in range(16):
+        for n in range(32):
             for p in procs:
                 self.assertTrue(p.marking)
                 flow = list(p())

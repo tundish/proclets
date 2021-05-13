@@ -34,12 +34,6 @@ from proclets.types import Exit
 
 class Control(Proclet):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.beacon = self.channels.get("beacon")
-        self.uplink = self.channels.get("uplink")
-        self.vhf = self.channels.get("vhf")
-
     @property
     def dag(self):
         return {
@@ -59,7 +53,7 @@ class Control(Proclet):
 
     def pro_launch(self, this, **kwargs):
         logging.info("We are go for launch", extra={"proclet": self})
-        yield from self.uplink.send(
+        yield from self.channels["uplink"].send(
             sender=self.uid, group=self.group,
             action=this.__name__,
         )
@@ -68,7 +62,7 @@ class Control(Proclet):
     def pro_separation(self, this, **kwargs):
         try:
             sync = next(
-                i for i in self.uplink.receive(self, this)
+                i for i in self.channels["uplink"].receive(self, this)
                 if i.action == this.__name__
             )
         except StopIteration:
@@ -80,7 +74,7 @@ class Control(Proclet):
     def pro_reentry(self, this, **kwargs):
         try:
             sync = next(
-                i for i in self.beacon.receive(self, this)
+                i for i in self.channels["beacon"].receive(self, this)
                 if i.action == this.__name__
             )
         except StopIteration:
@@ -105,7 +99,7 @@ class Control(Proclet):
         try:
             p = next(i for i in self.domain if not i.duty)
             t = next(iter(targets))
-            yield from self.vhf.send(
+            yield from self.channels["vhf"].send(
                 sender=self.uid, group={p.uid},
                 action=Init.request, context={t},
             )
@@ -175,8 +169,6 @@ class Vehicle(Proclet):
 
     def __init__(self, *args, orbits=0, **kwargs):
         super().__init__(*args, **kwargs)
-        self.beacon = self.channels.get("beacon")
-        self.uplink = self.channels.get("uplink")
         self.orbits = orbits
 
     @property
@@ -192,7 +184,7 @@ class Vehicle(Proclet):
     def pro_launch(self, this, **kwargs):
         try:
             sync = next(
-                i for i in self.uplink.receive(self, this)
+                i for i in self.channels["uplink"].receive(self, this)
                 if i.action == this.__name__
             )
         except StopIteration:
@@ -205,11 +197,11 @@ class Vehicle(Proclet):
         logging.info("Separation initiated", extra={"proclet": self})
         v = Vehicle.create(
             name="Launch vehicle", orbits=None,
-            channels={"beacon": self.beacon}, group=self.group,
+            channels={"beacon": self.channels["beacon"]}, group=self.group,
             marking=self.i_nodes[self.pro_reentry],
         )
         yield v
-        yield from self.uplink.send(
+        yield from self.channels["uplink"].send(
             sender=self.uid, group=self.group, context={v.uid},
             action=this.__name__,
         )
@@ -228,7 +220,7 @@ class Vehicle(Proclet):
     def pro_reentry(self, this, **kwargs):
         if not self.tally[this.__name__]:
             logging.info("Re-entering atmosphere", extra={"proclet": self})
-            yield from self.beacon.send(
+            yield from self.channels["beacon"].send(
                 sender=self.uid, group=self.group,
                 action=this.__name__,
             )
