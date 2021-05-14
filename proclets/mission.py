@@ -87,7 +87,7 @@ class Control(Proclet):
             yield
 
     def pro_recovery(self, this, **kwargs):
-        recoveries = {next(iter(i.context)): i for i in self.recoveries}
+        recoveries = {i: r for r in self.recoveries for i in r.context}
         if len(recoveries) == 2:
             logging.info("Mission complete", extra={"proclet": self})
             raise Termination()

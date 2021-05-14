@@ -27,8 +27,8 @@ class Proclet:
     """
     A Proclet instance is a callable object with a finite lifetime.
 
-    Proclets: A framework for lightweight interacting workflow processes.
-    Van der Aalst, Barthelmess, Ellis, Wainer (2001)
+    Use the :meth:`~proclets.proclet.Proclet.create` method to build one.
+
 
     """
 
@@ -36,6 +36,11 @@ class Proclet:
 
     @classmethod
     def create(cls, *args, fmt="{cls.__name__}_{0:03}", **kwargs):
+        """
+        This is the class factory method by which to create all Proclet objects.
+        New proclets are registered with the class so they can be retrieved by unique `uid`.
+
+        """
         name = fmt.format(len(cls.population) + 1, cls=cls)
         kwargs["name"] = kwargs.get("name", name)
         rv = cls(*args, **kwargs)
