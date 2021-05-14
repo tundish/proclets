@@ -184,7 +184,7 @@ class Vehicle(Proclet):
             )
             logging.debug(sync, extra={"proclet": self})
         except StopIteration:
-            pass
+            return
         else:
             logging.info("Launch phase is complete", extra={"proclet": self})
             yield
@@ -213,6 +213,7 @@ class Vehicle(Proclet):
         else:
             yield
 
+    # FIXME: One-shot ought not to be necessary
     def pro_reentry(self, this, **kwargs):
         if not self.tally[this.__name__]:
             logging.info("Re-entering atmosphere", extra={"proclet": self})
@@ -229,10 +230,11 @@ class Vehicle(Proclet):
                 if i.action == this.__name__
             )
             logging.debug(sync, extra={"proclet": self})
-            logging.info("Signing off", extra={"proclet": self})
-            yield
         except StopIteration:
             return
+        else:
+            logging.info("Signing off", extra={"proclet": self})
+            yield
 
 
 def mission():

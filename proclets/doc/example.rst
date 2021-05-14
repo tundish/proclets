@@ -4,13 +4,62 @@
 Example
 :::::::
 
-`Describing behaviour of Processes with Many-to-Many Interactions
-<https://dblp.org/rec/conf/apn/Fahland19>`_ by Dirk Fahland (2019).
+DAGs
+~~~~
+
+.. literalinclude:: ../mission.py
+   :pyobject: Vehicle.dag
+
+.. literalinclude:: ../mission.py
+   :pyobject: Recovery.dag
 
 .. literalinclude:: ../mission.py
    :pyobject: Control.dag
 
-::
+Transitions
+~~~~~~~~~~~
+
+Contrast patterns.
+
+Enabled -> Activated.
+
+Syncing
+-------
+
+.. literalinclude:: ../mission.py
+   :pyobject: Control.pro_launch
+
+Blocking
+--------
+
+.. literalinclude:: ../mission.py
+   :pyobject: Vehicle.pro_launch
+
+Forking
+-------
+
+.. literalinclude:: ../mission.py
+   :pyobject: Vehicle.pro_separation
+
+One-shots
+---------
+
+.. literalinclude:: ../mission.py
+   :pyobject: Vehicle.pro_reentry
+
+Joining
+-------
+
+.. literalinclude:: ../mission.py
+   :lines: 89-93
+
+.. literalinclude:: ../mission.py
+   :pyobject: Control.recoveries
+
+Output
+~~~~~~
+
+.. code-block:: none
 
      Mission control|    pro_launch|We are go for launch
        Space vehicle|    pro_launch|Launch phase is complete
@@ -20,23 +69,24 @@ Example
        Space vehicle|     pro_orbit|In orbit 1
      Mission control|   pro_reentry|Observing reentry of launch vehicle
        Space vehicle|     pro_orbit|In orbit 2
-     Mission control|  pro_recovery|Team 1a3 briefed for recovery of launch vehicle
+     Mission control|  pro_recovery|Team 81a briefed for recovery of launch vehicle
        Space vehicle|     pro_orbit|In orbit 3
        Recovery Team|  pro_recovery|Commencing search for launch vehicle
-       Recovery Team|  pro_recovery|Rendezvous with launch vehicle
-      Launch vehicle|  pro_recovery|Signing off
+       Recovery Team|  pro_recovery|Abandoning search for launch vehicle
        Space vehicle|   pro_reentry|Re-entering atmosphere
-       Recovery Team|   pro_standby|Team 1a3 standing by
+       Recovery Team|   pro_standby|Team 81a standing by
      Mission control|   pro_reentry|Observing reentry of space vehicle
-     Mission control|  pro_recovery|Team 1a3 briefed for recovery of space vehicle
+     Mission control|  pro_recovery|Team 81a briefed for recovery of launch vehicle
+       Recovery Team|  pro_recovery|Commencing search for launch vehicle
+       Recovery Team|  pro_recovery|Rendezvous with launch vehicle
+     Mission control|  pro_recovery|Team 1f4 briefed for recovery of space vehicle
+      Launch vehicle|  pro_recovery|Signing off
+       Recovery Team|   pro_standby|Team 81a standing by
        Recovery Team|  pro_recovery|Commencing search for space vehicle
        Recovery Team|  pro_recovery|Abandoning search for space vehicle
-     Mission control|  pro_recovery|Team c4b briefed for recovery of space vehicle
-       Recovery Team|   pro_standby|Team 1a3 standing by
-       Recovery Team|  pro_recovery|Commencing search for space vehicle
-       Recovery Team|  pro_recovery|Abandoning search for space vehicle
-     Mission control|  pro_recovery|Team 1a3 briefed for recovery of space vehicle
-       Recovery Team|   pro_standby|Team c4b standing by
+     Mission control|  pro_recovery|Team 81a briefed for recovery of space vehicle
+       Recovery Team|   pro_standby|Team 1f4 standing by
        Recovery Team|  pro_recovery|Commencing search for space vehicle
        Recovery Team|  pro_recovery|Rendezvous with space vehicle
      Mission control|  pro_recovery|Mission complete
+

@@ -31,4 +31,7 @@ Performatives
 .. autoattribute:: proclets.types.Performative
    :annotation: (pkg, description, metadata, paths, interludes)
 
+`Describing behaviour of Processes with Many-to-Many Interactions
+<https://dblp.org/rec/conf/apn/Fahland19>`_ by Dirk Fahland (2019).
+
 
