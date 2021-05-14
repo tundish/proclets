@@ -33,12 +33,38 @@ class Proclet:
     """
 
     population = weakref.WeakValueDictionary()
+    """
+    This class attribute dictionary stores every created Proclet instance by its unique `uid`.
+
+    """
 
     @classmethod
     def create(cls, *args, fmt="{cls.__name__}_{0:03}", **kwargs):
         """
         This is the class factory method by which to create all Proclet objects.
-        New proclets are registered with the class so they can be retrieved by unique `uid`.
+
+        New proclets are registered with the class :attr:`~proclets.proclet.Proclet.population`
+        so they can be retrieved by unique `uid`.
+
+        Keyword arguments may be any of the following (all are optional):
+
+        :param uid:     A unique identifier for the object. Generated if not supplied.
+        :param name:    A human-readable name for the object.
+                        If not supplied, len(:attr:`~proclets.proclet.Proclet.population`) is
+                        passed to the format string `fmt` to generate one.
+        :param channels:    A dictionary of named :class:`~proclets.channel.Channel` objects.
+        :param group:   Contains the `uid` s of other Proclets to communicate with.
+        :param marking: An initial marking to enable Proclet transitions declared in the
+                        :attr:`DAG<~proclets.proclet.Proclet.dag>`.
+        :param slate:
+        :param tally:
+        :type uid: uuid.UUID
+        :type name: str
+        :type channels: dict
+        :type group: set
+        :type marking: set
+        :type slate: dict
+        :type tally: dict
 
         """
         name = fmt.format(len(cls.population) + 1, cls=cls)
