@@ -1,15 +1,15 @@
 Proclets
 ::::::::
 
-A Pythonic implementation of Proclets and related structures.
+For just a single state machine, or a whole universe of interacting objects,
+The **Proclet** is a tool developed over decades to unify the worlds of mathematical modelling
+and software architecture.
 
-Primary reference is `Proclets: A framework for lightweight interacting workflow processes`
-as submitted 2001 to the International Journal of Cooperative Information Systems
-by Van der Aalst, Barthelmess, Ellis and Wainer.
+This package gives you a Pythonic implementation of Proclets and their related structures.
 
 Status
 ++++++
 
-This project is pre-alpha and under continuous development.
+This project was new in 2021 and is under continuous development.
 
 

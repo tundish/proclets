@@ -56,15 +56,15 @@ class Proclet:
         :param group:   Contains the `uid` s of other Proclets to communicate with.
         :param marking: An initial marking to enable Proclet transitions declared in the
                         :attr:`DAG<~proclets.proclet.Proclet.dag>`.
-        :param slate:
-        :param tally:
+        :param slate:   Counts the times a transition (by name) has blocked.
+        :param tally:   Counts the times a transition (by name) has been enabled.
         :type uid: uuid.UUID
         :type name: str
         :type channels: dict
         :type group: set
         :type marking: set
-        :type slate: dict
-        :type tally: dict
+        :type slate: Counter
+        :type tally: Counter
 
         """
         name = fmt.format(len(cls.population) + 1, cls=cls)
@@ -127,6 +127,10 @@ class Proclet:
 
     @property
     def dag(self):
+        """
+        This dictionary maps transition methods to a list of those which follow them in the net flow.
+
+        """
         return {}
 
     @property

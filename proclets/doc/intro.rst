@@ -28,4 +28,4 @@ This **proclets** package provides the classes described in that paper.
 
 This means you can sketch out a process in pencil as a Proclet and then implement it in Python code
 without leaving that conceptual framework.
-Hopefully this makes it a simpler job to verify that your code accurately implements the model.
+Hopefully this makes it a simpler job to verify that your code accurately realises the model.
