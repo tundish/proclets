@@ -65,12 +65,6 @@ Forking
 .. literalinclude:: ../mission.py
    :pyobject: Vehicle.pro_separation
 
-One-shots
----------
-
-.. literalinclude:: ../mission.py
-   :pyobject: Vehicle.pro_reentry
-
 Joining
 -------
 
