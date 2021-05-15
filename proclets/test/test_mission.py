@@ -61,9 +61,21 @@ class MissionTests(unittest.TestCase):
 
         for n, v in enumerate(i for i in self.objects if isinstance(i, Vehicle)):
             with self.subTest(n=n, v=v):
-                self.assertEqual(0 if n else 1, v.tally["pro_launch"], v.tally)
-                self.assertEqual(0 if n else 1, v.tally["pro_separation"], v.tally)
-                self.assertEqual(0 if n else 4, v.tally["pro_orbit"], v.tally)
+                self.assertEqual({0}, v.i_nodes[v.pro_launch])
+                self.assertEqual({1}, v.o_nodes[v.pro_launch])
+                self.assertEqual((1, 0)[n], v.tally["pro_launch"], v.tally)
+
+                self.assertEqual({1}, v.i_nodes[v.pro_separation])
+                self.assertEqual({2}, v.o_nodes[v.pro_separation])
+                self.assertEqual((1, 0)[n], v.tally["pro_separation"], v.tally)
+
+                self.assertEqual({2}, v.i_nodes[v.pro_orbit])
+                self.assertEqual({3}, v.o_nodes[v.pro_orbit])
+                self.assertEqual((4, 0)[n], v.tally["pro_orbit"], v.tally)
+
+                self.assertEqual({3}, v.i_nodes[v.pro_reentry])
+                self.assertEqual({4}, v.o_nodes[v.pro_reentry])
+                self.assertEqual((1, 1)[n], v.tally["pro_reentry"], v.tally)
 
     def test_recovery(self):
         for n, p, m in self.run_to_terminate(self.procs):

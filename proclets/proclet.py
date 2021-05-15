@@ -152,6 +152,10 @@ class Proclet:
         except StopIteration:
             return
 
+        if self.__class__.__name__ == "Vehicle" and fn.__name__ == "pro_reentry":
+            #print(fn, self.enabled, self.marking)
+            pass
+
         events = fn(fn, **kwargs) or []
         for obj in events:
             if obj is None:
