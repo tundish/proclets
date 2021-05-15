@@ -213,14 +213,12 @@ class Vehicle(Proclet):
         else:
             yield
 
-    # FIXME: One-shot ought not to be necessary
     def pro_reentry(self, this, **kwargs):
-        if not self.tally[this.__name__]:
-            logging.info("Re-entering atmosphere", extra={"proclet": self})
-            yield from self.channels["beacon"].send(
-                sender=self.uid, group=self.group,
-                action=this.__name__,
-            )
+        logging.info("Re-entering atmosphere", extra={"proclet": self})
+        yield from self.channels["beacon"].send(
+            sender=self.uid, group=self.group,
+            action=this.__name__,
+        )
         yield
 
     def pro_recovery(self, this, **kwargs):

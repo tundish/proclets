@@ -113,6 +113,7 @@ class Proclet:
         """
         name = fmt.format(len(cls.population) + 1, cls=cls)
         kwargs["name"] = kwargs.get("name", name)
+        kwargs["marking"] = kwargs.get("marking", set()).copy()
         rv = cls(*args, **kwargs)
         cls.population[rv.uid] = rv
         return rv
@@ -151,10 +152,6 @@ class Proclet:
             fn = next(fn for fn in self.enabled)
         except StopIteration:
             return
-
-        if self.__class__.__name__ == "Vehicle" and fn.__name__ == "pro_reentry":
-            #print(fn, self.enabled, self.marking)
-            pass
 
         events = fn(fn, **kwargs) or []
         for obj in events:

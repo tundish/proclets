@@ -6,6 +6,11 @@
 Change Log
 ::::::::::
 
+0.7.0
+=====
+
+* Fixed a bug in `Proclet.create` which could corrupt net markings.
+
 0.6.0
 =====
 

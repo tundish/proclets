@@ -73,7 +73,7 @@ class MissionTests(unittest.TestCase):
                 self.assertEqual({3}, v.o_nodes[v.pro_orbit])
                 self.assertEqual((4, 0)[n], v.tally["pro_orbit"], v.tally)
 
-                self.assertEqual({3}, v.i_nodes[v.pro_reentry])
+                self.assertEqual({3}, v.i_nodes[v.pro_reentry], v.arcs)
                 self.assertEqual({4}, v.o_nodes[v.pro_reentry])
                 self.assertEqual((1, 1)[n], v.tally["pro_reentry"], v.tally)
 
