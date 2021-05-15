@@ -13,8 +13,6 @@ Proclets
    example
    changes
 
-* :ref:`genindex`
-
 .. include:: ../../README.rst
 
 .. _GNU General Public License: http://www.gnu.org/licenses/gpl.html
