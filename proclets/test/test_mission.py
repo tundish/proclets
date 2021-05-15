@@ -31,6 +31,10 @@ class MissionTests(unittest.TestCase):
     def setUp(self):
         self.procs = mission()
 
+    @property
+    def objects(self):
+        return set(self.procs).union({d for p in self.procs for d in p.domain})
+
     @staticmethod
     def run_to_terminate(procs):
         n = 0
@@ -47,13 +51,20 @@ class MissionTests(unittest.TestCase):
             print(n, p, p.marking)
 
     def test_vehicles(self):
+        for n, p, m in self.run_to_terminate(self.procs):
+            pass
 
-        objs = set(self.procs).union({d for p in self.procs for d in p.domain})
-        control = next(i for i in objs if isinstance(i, Control))
-
-        for n, v in enumerate(i for i in objs if isinstance(i, Vehicle)):
+        for n, v in enumerate(i for i in self.objects if isinstance(i, Vehicle)):
             with self.subTest(v=v):
                 self.assertEqual(1, v.tally["pro_separation"], v.tally)
         self.assertEqual(1, n)
-        recoveries = [i for i in objs if isinstance(i, Recovery)]
+
+    def test_recovery(self):
+        for n, p, m in self.run_to_terminate(self.procs):
+            pass
+
+        recoveries = [i for i in self.objects if isinstance(i, Recovery)]
         self.assertEqual(2, len(recoveries))
+
+    def test_control(self):
+        control = next(i for i in self.objects if isinstance(i, Control))
