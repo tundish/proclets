@@ -33,7 +33,9 @@ class Proclet:
 
             ...
 
-    Add behaviour in one or more transition methods::
+    Add behaviour by defining one or more `transition` methods.
+    These methods get activated when the Proclet object is called.
+    A reference to the method is passed in as the parameter `this`::
 
         def pro_one(self, this, **kwargs):
             ...
@@ -54,17 +56,19 @@ class Proclet:
 
         p = MyProc.create()
 
-    When you call the proclet, those transition methods will be activated in the order
+    When you call the Proclet, those transition methods will be activated in the order
     defined by the :attr:`DAG<~proclets.proclet.Proclet.dag>`. When a transition method
     yields `None`, then operation flows on to the next.
 
-    :class:`~proclets.types.Termination`.
-
-    So this is sufficient::
+    Proclets will run forever if you let them. To halt operation, a transition may raise a
+    :class:`proclets.types.Termination` exception, which you can handle in the calling routine::
 
         while True:
-            for msg in p():
-                print(msg)
+            try:
+                for msg in p():
+                    print(msg)
+            except Termination:
+                break
 
     """
 
@@ -79,7 +83,7 @@ class Proclet:
         """
         This is the class factory method by which to create all Proclet objects.
 
-        New proclets are registered with the class :attr:`~proclets.proclet.Proclet.population`
+        New proclets are registered in the :attr:`~proclets.proclet.Proclet.population` dictionary
         so they can be retrieved by unique `uid`.
 
         Keyword arguments may be any of the following (all are optional):
@@ -90,10 +94,12 @@ class Proclet:
                         passed to the format string `fmt` to generate one.
         :param channels:    A dictionary of named :class:`~proclets.channel.Channel` objects.
         :param group:   Contains the `uid` s of other Proclets to communicate with.
-        :param marking: An initial marking to enable Proclet transitions declared in the
+        :param marking: An initial numerical marking to enable Proclet transitions declared in the
                         :attr:`DAG<~proclets.proclet.Proclet.dag>`.
-        :param slate:   Counts the times a transition (by name) has blocked.
-        :param tally:   Counts the times a transition (by name) has been enabled.
+        :param slate:   The instance attribute `slate` stores the number of times a transition has blocked.
+                        You can initialise that via this parameter.
+        :param tally:   The instance attribute `tally` stores the number times a transition has been enabled.
+                        You can initialise that via this parameter.
         :type uid: uuid.UUID
         :type name: str
         :type channels: dict
@@ -114,7 +120,7 @@ class Proclet:
         n = 0
         for k, v in dag.items():
             if not n:
-                yield (n, (None, k))
+                yield n, (None, k)
             for i in v:
                 n += 1
                 yield n, (k, i)
@@ -176,6 +182,10 @@ class Proclet:
 
     @functools.cached_property
     def i_nodes(self):
+        """
+        This dictionary maps transition methods to the numerical marking which enables them.
+
+        """
         rv = defaultdict(set)
         for p, (s, d) in self.arcs.items():
             rv[d].add(p)
@@ -183,6 +193,10 @@ class Proclet:
 
     @functools.cached_property
     def o_nodes(self):
+        """
+        This dictionary maps transition methods to the numerical marking they generate when fired.
+
+        """
         rv = defaultdict(set)
         for p, (s, d) in self.arcs.items():
             rv[s].add(p)
