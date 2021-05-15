@@ -51,7 +51,7 @@ class Performative:
 
     ts:         int = field(default_factory=time.monotonic_ns)
     uid:        uuid.UUID = field(default_factory=uuid.uuid4)
-    channel:    uuid.UUID = None
+    channel:    object = None
     sender:     uuid.UUID = None
     group:      list[uuid.UUID] = None
     connect:    uuid.UUID = None

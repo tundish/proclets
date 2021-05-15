@@ -36,7 +36,7 @@ from proclets.types import Performative
 class Channel:
     """
     Channels provide a service somewhat like an email client; they deliver
-    :class:`~proclets.types.Performative` s to an inbox corresponding to the `uid`
+    Performative_ s to an inbox corresponding to the `uid`
     of the Proclet recipient.
 
     These messages can be retrieved one at a time, after the manner of a queue.
@@ -94,7 +94,13 @@ class Channel:
     def send(self, **kwargs):
         """
         Submit a message for delivery.
-        Keyword arguments are those of a :class:`~proclets.types.Performative`.
+
+        :param sender:  Uid of the sender.
+        :param group:   Contains uids of intended recipients.
+        :type  sender:  uuid.UUID
+        :type  group:   list
+
+        All keyword arguments are those of a Performative_.
 
         """
         kwargs["channel"] = kwargs.get("channel", self)
@@ -116,7 +122,7 @@ class Channel:
         """
         Proclet `p` having received a message `m`; use it to craft a reply to its sender.
         This method preserves `context` and `connection` of messages.
-        Keyword arguments are those of a :class:`~proclets.types.Performative`.
+        Keyword arguments are those of a Performative_.
 
         """
         msg = Performative(**dict(
@@ -132,7 +138,7 @@ class Channel:
         ) -> Performative:
         """
         Process undelivered messages for `p` as a batch.
-        Yields each generated reply as a :class:`~proclets.types.Performative`.
+        Yields each generated reply as a Performative_.
 
         :param actions:     Maps incoming message actions to a corresponding action in the generated reply.
         :param contents:    Maps incoming message actions to corresponding content in the generated reply.
