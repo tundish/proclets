@@ -255,12 +255,11 @@ if __name__ == "__main__":
     while rv is None:
         for p in procs:
             try:
-                flow = list(p())
+                for m in p():
+                    logging.debug(m, extra={"proclet": p})
             except Termination:
                 rv = 0
             except Exception:
                 rv = 1
-            for i in flow:
-                logging.debug(i, extra={"proclet": p})
 
     sys.exit(rv)

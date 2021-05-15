@@ -26,6 +26,9 @@ import weakref
 class Proclet:
     """
     Proclets are callable objects which generate (yield) other objects.
+    Their workflow is defined as a net of *places* and *transitions*.
+    Each Proclet instance maintains a *marking* which determines which transitions
+    are enabled at any particular time.
 
     To use Proclets, first define a subclass::
 
@@ -34,8 +37,7 @@ class Proclet:
             ...
 
     Add behaviour by defining one or more `transition` methods.
-    These methods get activated when the Proclet object is called.
-    A reference to the method is passed in as the parameter `this`::
+    A reference to the method itself gets passed in as the parameter `this` when it is called::
 
         def pro_one(self, this, **kwargs):
             ...
@@ -52,11 +54,11 @@ class Proclet:
                 self.pro_two: []
             }
 
-    Use the :meth:`~proclets.proclet.Proclet.create` method to build one::
+    Use the :meth:`~proclets.proclet.Proclet.create` method to obtain an instance::
 
         p = MyProc.create()
 
-    When you call the Proclet, those transition methods will be activated in the order
+    When you call the Proclet, those transition methods will be enabled in the order
     defined by the :attr:`DAG<~proclets.proclet.Proclet.dag>`. When a transition method
     yields `None`, then operation flows on to the next.
 
@@ -177,6 +179,10 @@ class Proclet:
 
     @property
     def enabled(self):
+        """
+        The list of methods currently enabled by token positions.
+
+        """
         rv = {self.arcs[i][1]: i for i in sorted(self.marking)}
         return list(rv.keys())
 

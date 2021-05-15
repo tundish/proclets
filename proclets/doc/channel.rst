@@ -42,7 +42,7 @@ Performatives
     :type  uid:     uuid.UUID
     :type  channel: object
     :type  sender:  uuid.UUID
-    :type  group:   list
+    :type  group:   set
     :type  context: set
 
 

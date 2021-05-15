@@ -1,8 +1,8 @@
 ..  Titling
     ##++::==~~--''``
 
-Petri Nets and Workflows
-::::::::::::::::::::::::
+Introduction
+::::::::::::
 
 Petri Nets are a way to describe all sorts of real-world processes.
 They have many applications in Physics, Chemistry and Biology.

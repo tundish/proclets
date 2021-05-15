@@ -53,7 +53,7 @@ class Performative:
     uid:        uuid.UUID = field(default_factory=uuid.uuid4)
     channel:    object = None
     sender:     uuid.UUID = None
-    group:      list[uuid.UUID] = None
+    group:      set[uuid.UUID] = None
     connect:    uuid.UUID = None
     context:    set[int] = None
     action:     enum.Enum = None

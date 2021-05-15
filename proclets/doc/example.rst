@@ -4,18 +4,35 @@
 Example
 :::::::
 
-This example was inspired by the teaching problem set out in the paper
+This scenario was inspired by the teaching problem set out in the paper
 `Describing behaviour of Processes with Many-to-Many Interactions
 <https://dblp.org/rec/conf/apn/Fahland19>`_ by Dirk Fahland (2019).
+
+Our example concerns the launch by Mission Control of a Space Vehicle.
+The Vehicle separates from its launcher and orbits the earth.
+
+Mission Control dispatches Recovery Teams to locate both Vehicles after
+they have separately reentered the atmosphere.
+
+Full source code is `here
+<https://raw.githubusercontent.com/tundish/proclets/master/proclets/mission.py>`_.
 
 DAGs
 ~~~~
 
+The net of the Vehicle proclet is simple; a linear arrangement of
+five transitions, terminating at the last.
+ 
 .. literalinclude:: ../mission.py
    :pyobject: Vehicle.dag
 
+Recovery teams have three transitions, looping continually so that after having finished one job,
+they are available for another.
+ 
 .. literalinclude:: ../mission.py
    :pyobject: Recovery.dag
+
+Mission Control is the most complex net. Some transitions loop back to themselves.
 
 .. literalinclude:: ../mission.py
    :pyobject: Control.dag
@@ -23,9 +40,12 @@ DAGs
 Transitions
 ~~~~~~~~~~~
 
-Contrast patterns.
+In Proclet theory, a Transition is *activated* when all its input places are occupied by *tokens*.
+It can choose whether to *fire* based on *guard* conditions. It may also *block* for a while, in
+the manner of Timed Petri Nets.
 
-Enabled -> Activated.
+Here we implement each Transition as a single instance method of the Proclet object.
+It will be useful to adopt a small number of code patterns based on simple Python idiom.
 
 Syncing
 -------

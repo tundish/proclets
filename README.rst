@@ -1,8 +1,8 @@
 Proclets
 ::::::::
 
-For just a single state machine, or a whole universe of interacting objects,
-The **Proclet** is a tool developed over decades to unify the worlds of mathematical modelling
+From just a single state machine, to a whole universe of interacting objects,
+The **Proclet** is a modelling technique which bridges the worlds of mathematical theory
 and software architecture.
 
 This package gives you a Pythonic implementation of Proclets and their related structures.
