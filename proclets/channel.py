@@ -35,18 +35,24 @@ from proclets.types import Performative
 
 class Channel:
     """
-    Information is only available locally, hence synchronization can only
-    occur at a channel.
+    Channels provide a service somewhat like an email client; they deliver
+    :class:`~proclets.types.Performative` s to an inbox corresponding to the `uid`
+    of the Proclet recipient.
 
-    Describing behaviour of Processes with Many-to-Many Interactions.
-    Fahland (2019)
+    These messages can be retrieved one at a time, after the manner of a queue.
+    There are also higher-level methods which allow Proclets to process messages in batches.
+
+    By default, messages are only delivered once. However, each Proclet transition may
+    independently access the channel; to do that, pass `this` to the `party` parameter
+    of the channel method.
+
 
     """
     def __init__(self, maxlen=None):
         self.store = defaultdict(functools.partial(deque, maxlen=maxlen))
         self.ready = defaultdict(Counter)
 
-    def qsize(self, uid, party=None) -> int:
+    def qsize(self, uid: uuid.UUID, party=None) -> int:
         """
         Return the number of items in the channel.
 
@@ -55,14 +61,14 @@ class Channel:
             self.ready[uid][party] = len(self.store[uid])
         return self.ready[uid][party]
 
-    def empty(self, uid, party=None) -> bool:
+    def empty(self, uid: uuid.UUID, party=None) -> bool:
         """
         Return True if the channel is empty, False otherwise.
 
         """
         return self.qsize(uid, party=party) == 0
 
-    def full(self, uid, party=None):
+    def full(self, uid: uuid.UUID, party=None):
         return False
 
     def put(self, item: Performative):
@@ -77,7 +83,7 @@ class Channel:
             n += 1
         return n
 
-    def get(self, uid, party=None):
+    def get(self, uid: uuid.UUID, party=None):
         if self.empty(uid, party=party):
             raise queue.Empty
 
@@ -86,6 +92,11 @@ class Channel:
         return item
 
     def send(self, **kwargs):
+        """
+        Submit a message for delivery.
+        Keyword arguments are those of a :class:`~proclets.types.Performative`.
+
+        """
         kwargs["channel"] = kwargs.get("channel", self)
         msg = Performative(**kwargs)
         msg.connect = msg.connect or msg.uid
@@ -93,11 +104,21 @@ class Channel:
         for i in range(sent or 0):
             yield msg
 
-    def receive(self, p: Proclet, party=None):
+    def receive(self, p: Proclet, party=None) -> Performative:
+        """
+        Yield all undelivered messages intended for the Proclet.
+
+        """
         while not self.empty(p.uid, party):
             yield self.get(p.uid, party)
 
-    def reply(self, p: Proclet, m: Performative, party=None, **kwargs):
+    def reply(self, p: Proclet, m: Performative, **kwargs) -> Performative:
+        """
+        Proclet `p` having received a message `m`; use it to craft a reply to its sender.
+        This method preserves `context` and `connection` of messages.
+        Keyword arguments are those of a :class:`~proclets.types.Performative`.
+
+        """
         msg = Performative(**dict(
             kwargs, sender=p.uid, group={m.sender},
             channel=m.channel, connect=m.connect, context=m.context,
@@ -108,7 +129,19 @@ class Channel:
     def respond(
         self, p: Proclet, party=None,
         actions: dict=None, contents: dict=None, context: set=None,
-        ):
+        ) -> Performative:
+        """
+        Process undelivered messages for `p` as a batch.
+        Yields each generated reply as a :class:`~proclets.types.Performative`.
+
+        :param actions:     Maps incoming message actions to a corresponding action in the generated reply.
+        :param contents:    Maps incoming message actions to corresponding content in the generated reply.
+        :param context:     If supplied, add extra context to the reply.
+        :type actions:      dict
+        :type contents:     dict
+        :type context:      set
+
+        """
         while not self.empty(p.uid, party):
             m = self.get(p.uid, party)
             yield m
@@ -125,7 +158,14 @@ class Channel:
             elif m.action in actions:
                 yield None
 
-    def view(self, uid):
+    def view(self, uid: uuid.UUID):
+        """
+        Scan the entire Channel for messages sent and received by the Proclet with `uid`.
+
+        Returns a dictionary whose keys are the `connect` ids for the messages, and whose values
+        are the corresponding messages in the order they were generated.
+
+        """
         msgs = sorted(itertools.chain.from_iterable(self.store.values()), key=operator.attrgetter("ts"))
         rv = defaultdict(list)
         for m in msgs:
