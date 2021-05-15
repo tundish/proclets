@@ -25,10 +25,46 @@ import weakref
 
 class Proclet:
     """
-    A Proclet instance is a callable object with a finite lifetime.
+    Proclets are callable objects which generate (yield) other objects.
 
-    Use the :meth:`~proclets.proclet.Proclet.create` method to build one.
+    To use Proclets, first define a subclass::
 
+        class MyProc(Proclet):
+
+            ...
+
+    Add behaviour in one or more transition methods::
+
+        def pro_one(self, this, **kwargs):
+            ...
+
+        def pro_two(self, this, **kwargs):
+            ...
+
+    Publish the workflow net as a directed graph::
+
+        @property
+        def dag(self):
+            return {
+                self.pro_one: [self.pro_two],
+                self.pro_two: []
+            }
+
+    Use the :meth:`~proclets.proclet.Proclet.create` method to build one::
+
+        p = MyProc.create()
+
+    When you call the proclet, those transition methods will be activated in the order
+    defined by the :attr:`DAG<~proclets.proclet.Proclet.dag>`. When a transition method
+    yields `None`, then operation flows on to the next.
+
+    :class:`~proclets.types.Termination`.
+
+    So this is sufficient::
+
+        while True:
+            for msg in p():
+                print(msg)
 
     """
 
