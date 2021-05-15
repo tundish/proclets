@@ -86,3 +86,10 @@ class MissionTests(unittest.TestCase):
 
     def test_control(self):
         control = next(i for i in self.objects if isinstance(i, Control))
+        limit = float("inf")
+        for n, p, m in self.run_to_terminate(self.procs):
+            if len(control.recoveries) == 2:
+                limit = sum(control.tally.values())
+
+            with self.subTest(n=n, limit=limit):
+                self.assertFalse(sum(control.tally.values()) > limit)
