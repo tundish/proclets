@@ -33,7 +33,12 @@ class MissionTests(unittest.TestCase):
 
     @property
     def objects(self):
-        return set(self.procs).union({d for p in self.procs for d in p.domain})
+        rv = list(self.procs)
+        for p in self.procs:
+            for d in p.domain:
+                if d not in rv:
+                    rv.append(d)
+        return rv
 
     @staticmethod
     def run_to_terminate(procs):
@@ -55,9 +60,10 @@ class MissionTests(unittest.TestCase):
             pass
 
         for n, v in enumerate(i for i in self.objects if isinstance(i, Vehicle)):
-            with self.subTest(v=v):
-                self.assertEqual(1, v.tally["pro_separation"], v.tally)
-        self.assertEqual(1, n)
+            with self.subTest(n=n, v=v):
+                self.assertEqual(0 if n else 1, v.tally["pro_launch"], v.tally)
+                self.assertEqual(0 if n else 1, v.tally["pro_separation"], v.tally)
+                self.assertEqual(0 if n else 4, v.tally["pro_orbit"], v.tally)
 
     def test_recovery(self):
         for n, p, m in self.run_to_terminate(self.procs):
