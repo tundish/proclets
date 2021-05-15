@@ -12,4 +12,13 @@ Status
 
 This project was new in 2021 and is under continuous development.
 
+Documentation
++++++++++++++
+
+Documentation is included in the package. You can find both plain text and HTML::
+
+    pip download proclets
+
+If you'd rather browse online, you can do so `here
+<https://proclets.readthedocs.io/en/latest/index.html>`_.
 
