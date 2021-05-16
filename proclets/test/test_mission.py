@@ -88,7 +88,7 @@ class MissionTests(unittest.TestCase):
         control = next(i for i in self.objects if isinstance(i, Control))
         limit = float("inf")
         for n, p, m in self.run_to_terminate(self.procs):
-            if len(control.recoveries) == 2:
+            if len(getattr(control, "results", [])) == 2:
                 limit = sum(control.tally.values())
 
             with self.subTest(n=n, limit=limit):

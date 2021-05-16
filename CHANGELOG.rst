@@ -6,6 +6,11 @@
 Change Log
 ::::::::::
 
+0.8.0
+=====
+
+* Fixed a bug in `Control.pro_recovery` which could revrief Recovery teams.
+
 0.7.0
 =====
 

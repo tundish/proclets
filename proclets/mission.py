@@ -38,13 +38,6 @@ class Control(Proclet):
             self.pro_recovery: [self.pro_recovery],
         }
 
-    @property
-    def recoveries(self):
-        return [
-            msgs[-1] for msgs in self.channels["vhf"].view(self.uid)
-            if msgs[-1].action == Exit.deliver
-        ]
-
     def pro_launch(self, this, **kwargs):
         logging.info("We are go for launch", extra={"proclet": self})
         yield from self.channels["uplink"].send(
@@ -87,12 +80,20 @@ class Control(Proclet):
             yield
 
     def pro_recovery(self, this, **kwargs):
-        recoveries = {i: r for r in self.recoveries for i in r.context}
-        if len(recoveries) == 2:
-            logging.info("Mission complete", extra={"proclet": self})
-            raise Termination()
+        try:
+            if len(self.results) == 2:
+                logging.info("Mission complete", extra={"proclet": self})
+                raise Termination()
 
-        targets = {i.target for i in self.domain} - set(recoveries)
+            for msg in self.channels["vhf"].receive(self, this):
+                logging.debug(msg, extra={"proclet": self})
+                if msg.action == Exit.deliver:
+                    for i in msg.context:
+                        self.results[i] = msg
+        except AttributeError:
+            self.results = {}
+
+        targets = {i.target for i in self.domain} - set(self.results)
 
         try:
             p = next(i for i in self.domain if not i.duty)

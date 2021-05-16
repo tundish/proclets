@@ -69,13 +69,13 @@ Joining
 -------
 
 .. literalinclude:: ../mission.py
-   :pyobject: Control.recoveries
+   :lines: 89-93
 
 Finishing
 ---------
 
 .. literalinclude:: ../mission.py
-   :lines: 89-93
+   :lines: 85-87
 
 Output
 ~~~~~~
