@@ -59,7 +59,7 @@ class Proclet:
         p = MyProc.create()
 
     When you call the Proclet, those transition methods will be enabled in the order
-    defined by the :attr:`Net<~proclets.proclet.Proclet.net>`. When a transition method
+    defined by the :attr:`~proclets.proclet.Proclet.net`. When a transition method
     yields `None`, then operation flows on to the next.
 
     Proclets will run forever if you let them. To halt operation, a transition may raise a
@@ -97,7 +97,7 @@ class Proclet:
         :param channels:    A dictionary of named :class:`~proclets.channel.Channel` objects.
         :param group:   Contains the `uid` s of other Proclets to communicate with.
         :param marking: An initial numerical marking to enable Proclet transitions declared in the
-                        :attr:`Net<~proclets.proclet.Proclet.net>`.
+                        :attr:`~proclets.proclet.Proclet.net`.
         :param slate:   The instance attribute `slate` stores the number of times a transition has blocked.
                         You can initialise that via this parameter.
         :param tally:   The instance attribute `tally` stores the number times a transition has been enabled.
