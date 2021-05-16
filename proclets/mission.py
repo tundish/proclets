@@ -30,7 +30,7 @@ from proclets.types import Termination
 class Control(Proclet):
 
     @property
-    def dag(self):
+    def net(self):
         return {
             self.pro_launch: [self.pro_separation],
             self.pro_separation: [self.pro_reentry],
@@ -118,7 +118,7 @@ class Recovery(Proclet):
         self.duty = None
 
     @property
-    def dag(self):
+    def net(self):
         return {
             self.pro_tasking: [self.pro_recovery],
             self.pro_recovery: [self.pro_standby],
@@ -167,7 +167,7 @@ class Vehicle(Proclet):
         self.orbits = orbits
 
     @property
-    def dag(self):
+    def net(self):
         return {
             self.pro_launch: [self.pro_separation],
             self.pro_separation: [self.pro_orbit],

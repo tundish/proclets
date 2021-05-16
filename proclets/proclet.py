@@ -48,7 +48,7 @@ class Proclet:
     Publish the workflow net as a directed graph::
 
         @property
-        def dag(self):
+        def net(self):
             return {
                 self.pro_one: [self.pro_two],
                 self.pro_two: []
@@ -59,7 +59,7 @@ class Proclet:
         p = MyProc.create()
 
     When you call the Proclet, those transition methods will be enabled in the order
-    defined by the :attr:`DAG<~proclets.proclet.Proclet.dag>`. When a transition method
+    defined by the :attr:`Net<~proclets.proclet.Proclet.net>`. When a transition method
     yields `None`, then operation flows on to the next.
 
     Proclets will run forever if you let them. To halt operation, a transition may raise a
@@ -97,7 +97,7 @@ class Proclet:
         :param channels:    A dictionary of named :class:`~proclets.channel.Channel` objects.
         :param group:   Contains the `uid` s of other Proclets to communicate with.
         :param marking: An initial numerical marking to enable Proclet transitions declared in the
-                        :attr:`DAG<~proclets.proclet.Proclet.dag>`.
+                        :attr:`Net<~proclets.proclet.Proclet.net>`.
         :param slate:   The instance attribute `slate` stores the number of times a transition has blocked.
                         You can initialise that via this parameter.
         :param tally:   The instance attribute `tally` stores the number times a transition has been enabled.
@@ -119,9 +119,9 @@ class Proclet:
         return rv
 
     @staticmethod
-    def build_arcs(dag):
+    def build_arcs(net):
         n = 0
-        for k, v in dag.items():
+        for k, v in net.items():
             if not n:
                 yield n, (None, k)
             for i in v:
@@ -137,7 +137,7 @@ class Proclet:
         self.name = name or self.uid
         self.channels = channels or {}
         self.group = group or set()
-        self.arcs = dict(self.build_arcs(self.dag))
+        self.arcs = dict(self.build_arcs(self.net))
         self.marking = marking or {0}
         self.slate = slate or Counter()
         self.tally = tally or Counter()
@@ -171,7 +171,7 @@ class Proclet:
         self.tally[fn.__name__] += 1
 
     @property
-    def dag(self):
+    def net(self):
         """
         This dictionary maps transition methods to a list of those which follow them in the net flow.
 

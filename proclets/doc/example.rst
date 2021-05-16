@@ -17,25 +17,25 @@ they have separately reentered the atmosphere.
 Full source code is `here
 <https://raw.githubusercontent.com/tundish/proclets/master/proclets/mission.py>`_.
 
-DAGs
+Nets
 ~~~~
 
 The net of the Vehicle proclet is simple; a linear arrangement of
 five transitions, terminating at the last.
  
 .. literalinclude:: ../mission.py
-   :pyobject: Vehicle.dag
+   :pyobject: Vehicle.net
 
 Recovery teams have three transitions, looping continually so that after having finished one job,
 they are available for another.
  
 .. literalinclude:: ../mission.py
-   :pyobject: Recovery.dag
+   :pyobject: Recovery.net
 
 Mission Control is the most complex net. Some transitions loop back to themselves.
 
 .. literalinclude:: ../mission.py
-   :pyobject: Control.dag
+   :pyobject: Control.net
 
 Transitions
 ~~~~~~~~~~~
