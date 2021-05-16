@@ -100,7 +100,7 @@ class Proclet:
                         :attr:`~proclets.proclet.Proclet.net`.
         :param slate:   The instance attribute `slate` stores the number of times a transition has blocked.
                         You can initialise that via this parameter.
-        :param tally:   The instance attribute `tally` stores the number times a transition has been enabled.
+        :param tally:   The instance attribute `tally` stores the number of times a transition has been enabled.
                         You can initialise that via this parameter.
         :type uid: uuid.UUID
         :type name: str
