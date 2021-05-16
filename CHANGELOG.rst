@@ -6,6 +6,11 @@
 Change Log
 ::::::::::
 
+0.9.0
+=====
+
+* Use standard collections as annotations in Python 3.8
+
 0.8.0
 =====
 

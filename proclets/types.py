@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with proclets.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import annotations  # Use standard collection for generic typing in Python 3.8
 from dataclasses import dataclass
 from dataclasses import field
 import enum
