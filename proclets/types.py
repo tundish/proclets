@@ -24,6 +24,7 @@ import time
 import uuid
 
 class FlowException(Exception): pass
+class Restitution(FlowException): pass
 class Termination(FlowException): pass
 
 
