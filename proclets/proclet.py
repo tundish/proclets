@@ -148,27 +148,23 @@ class Proclet:
             yield from proc(**kwargs)
 
         n = 1
-        try:
-            fn = next(fn for fn in self.enabled)
-        except StopIteration:
-            return
-
-        events = fn(fn, **kwargs) or []
-        for obj in events:
-            if obj is None:
-                # Transition is complete
-                self.marking -= self.i_nodes[fn]
-                self.marking.update(self.o_nodes[fn])
-                n = self.slate[fn] = 0
-            elif isinstance(obj, Proclet):
-                # Transition spawns a new Proclet
-                yield obj
-                if obj not in self.domain:
-                    self.domain.append(obj)
-            else:
-                yield obj
-        self.slate[fn.__name__] += n
-        self.tally[fn.__name__] += 1
+        for fn in self.enabled:
+            events = fn(fn, **kwargs) or []
+            for obj in events:
+                if obj is None:
+                    # Transition is complete
+                    self.marking -= self.i_nodes[fn]
+                    self.marking.update(self.o_nodes[fn])
+                    n = self.slate[fn] = 0
+                elif isinstance(obj, Proclet):
+                    # Transition spawns a new Proclet
+                    yield obj
+                    if obj not in self.domain:
+                        self.domain.append(obj)
+                else:
+                    yield obj
+            self.slate[fn.__name__] += n
+            self.tally[fn.__name__] += 1
 
     @property
     def net(self):

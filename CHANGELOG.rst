@@ -6,6 +6,11 @@
 Change Log
 ::::::::::
 
+0.10.0
+======
+
+* Fixed a bug in `Proclet.__call__` which skipped active methods.
+
 0.9.0
 =====
 
