@@ -20,7 +20,80 @@ import unittest
 
 from proclets.mission import Control
 from proclets.mission import Vehicle
+from proclets.proclet import Proclet
+from proclets.types import Termination
 
+
+class MarkingTests(unittest.TestCase):
+
+    class Parallel(Proclet):
+
+        @property
+        def net(self):
+            return {
+                self.pro_one: [self.pro_two, self.pro_three],
+                self.pro_two: [self.pro_four],
+                self.pro_three: [self.pro_five],
+                self.pro_four: [self.pro_four, self.pro_five],
+                self.pro_five: [],
+            }
+
+        def pro_one(self, this, **kwargs):
+            print("one")
+            yield
+
+        def pro_two(self, this, **kwargs):
+            print("two")
+            yield
+
+        def pro_three(self, this, **kwargs):
+            print("three")
+            yield
+
+        def pro_four(self, this, **kwargs):
+            print("four")
+            yield
+
+        def pro_five(self, this, **kwargs):
+            print("five")
+            raise Termination()
+            yield
+
+    def test_fork(self):
+        n = 0
+        p = MarkingTests.Parallel.create()
+        while True:
+            n += 1
+            try:
+                list(p())
+            except Termination:
+                break
+
+            with self.subTest(n=n, p=p):
+                if p.pro_two in p.enabled:
+                    self.assertIn(p.pro_three, p.enabled)
+                if p.pro_three in p.enabled:
+                    self.assertIn(p.pro_two, p.enabled)
+
+    def test_join(self):
+        n = 0
+        p = MarkingTests.Parallel.create()
+        while True:
+            n += 1
+            try:
+                list(p())
+            except Termination:
+                break
+
+            if p.pro_five in p.enabled:
+                with self.subTest(n=n, p=p):
+                    self.assertTrue(p.i_nodes[p.pro_five].issubset(p.marking))
+
+    def test_loop(self):
+        p = MarkingTests.Parallel.create()
+        a = next((k for k, v in p.arcs.items() if len(set(v)) != len(v)), None)
+        self.assertNotIn(a, p.i_nodes[p.pro_four])
+        self.assertNotIn(a, p.o_nodes[p.pro_four])
 
 class ProcletTests(unittest.TestCase):
 

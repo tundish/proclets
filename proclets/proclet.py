@@ -180,8 +180,7 @@ class Proclet:
         The list of methods currently enabled by token positions.
 
         """
-        rv = {self.arcs[i][1]: i for i in sorted(self.marking)}
-        return list(rv.keys())
+        return [i for i in self.net if self.i_nodes[i].issubset(self.marking)]
 
     @functools.cached_property
     def i_nodes(self):
@@ -191,7 +190,8 @@ class Proclet:
         """
         rv = defaultdict(set)
         for p, (s, d) in self.arcs.items():
-            rv[d].add(p)
+            if s != d:
+                rv[d].add(p)
         return rv
 
     @functools.cached_property
@@ -202,5 +202,7 @@ class Proclet:
         """
         rv = defaultdict(set)
         for p, (s, d) in self.arcs.items():
+            if s == d:
+                p = next(iter(self.i_nodes[s]), p)
             rv[s].add(p)
         return rv
