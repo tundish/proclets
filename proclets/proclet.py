@@ -203,6 +203,6 @@ class Proclet:
         rv = defaultdict(set)
         for p, (s, d) in self.arcs.items():
             if s == d:
-                p = next(iter(self.i_nodes[s]), p)
+                p = next(i for i in self.i_nodes[s] if i != p)
             rv[s].add(p)
         return rv

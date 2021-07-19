@@ -34,12 +34,14 @@ class Control(Proclet):
         return {
             self.pro_launch: [self.pro_separation],
             self.pro_separation: [self.pro_reentry],
-            self.pro_reentry: [self.pro_recovery, self.pro_reentry],
-            self.pro_recovery: [self.pro_recovery],
+            self.pro_reentry: [self.pro_recovery],
+            self.pro_recovery: [self.pro_complete],
+            self.pro_complete: [self.pro_recovery],
         }
 
     def pro_launch(self, this, **kwargs):
         logging.info("We are go for launch", extra={"proclet": self})
+        self.results = {}
         yield from self.channels["uplink"].send(
             sender=self.uid, group=self.group,
             action=this.__name__,
@@ -80,19 +82,6 @@ class Control(Proclet):
             yield
 
     def pro_recovery(self, this, **kwargs):
-        try:
-            if len(self.results) == 2:
-                logging.info("Mission complete", extra={"proclet": self})
-                raise Termination()
-
-            for msg in self.channels["vhf"].receive(self, this):
-                logging.debug(msg, extra={"proclet": self})
-                if msg.action == Exit.deliver:
-                    for i in msg.context:
-                        self.results[i] = msg
-        except AttributeError:
-            self.results = {}
-
         targets = {i.target for i in self.domain} - set(self.results)
 
         try:
@@ -108,6 +97,17 @@ class Control(Proclet):
             pass
         finally:
             yield
+
+    def pro_complete(self, this, **kwargs):
+        for msg in self.channels["vhf"].receive(self, this):
+            logging.debug(msg, extra={"proclet": self})
+            if msg.action == Exit.deliver:
+                for i in msg.context:
+                    self.results[i] = msg
+
+        if len(self.results) == 2:
+            logging.info("Mission complete", extra={"proclet": self})
+            raise Termination()
 
 
 class Recovery(Proclet):
