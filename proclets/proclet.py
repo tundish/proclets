@@ -19,6 +19,7 @@
 from collections import Counter
 from collections import defaultdict
 import functools
+import operator
 import uuid
 import warnings
 import weakref
@@ -181,7 +182,10 @@ class Proclet:
         The list of methods currently enabled by token positions.
 
         """
-        return [i for i in self.net if self.i_nodes[i].issubset(self.marking)]
+        return [i for k, i in sorted(
+            (self.tally[i.__name__], i)
+            for i in self.net if self.i_nodes[i].issubset(self.marking)
+        )]
 
     @functools.cached_property
     def i_nodes(self):
