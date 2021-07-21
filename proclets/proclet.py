@@ -189,8 +189,10 @@ class Proclet:
 
         """
         rv = defaultdict(set)
+        ordinals = {i: n for n, i in enumerate(self.net)}
         for p, (s, d) in self.arcs.items():
-            if s != d:
+            if None in (s, d) or ordinals[s] < ordinals[d]:
+                # An arc to a subsequent transition creates a place
                 rv[d].add(p)
         return rv
 
@@ -201,8 +203,10 @@ class Proclet:
 
         """
         rv = defaultdict(set)
+        ordinals = {i: n for n, i in enumerate(self.net)}
         for p, (s, d) in self.arcs.items():
-            if s == d:
-                p = next(i for i in self.i_nodes[s] if i != p)
+            if None not in (s, d) and ordinals[s] >= ordinals[d]:
+                # An arc back to a previous transition does not create a place
+                p = ordinals[d] and sorted(self.i_nodes[s])[0]
             rv[s].add(p)
         return rv

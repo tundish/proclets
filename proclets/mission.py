@@ -33,15 +33,16 @@ class Control(Proclet):
     def net(self):
         return {
             self.pro_launch: [self.pro_separation],
-            self.pro_separation: [self.pro_reentry],
-            self.pro_reentry: [self.pro_recovery],
-            self.pro_recovery: [self.pro_complete],
-            self.pro_complete: [self.pro_recovery],
+            self.pro_separation: [self.pro_reentry, self.pro_recovery],
+            self.pro_reentry: [self.pro_reentry, self.pro_complete],
+            self.pro_recovery: [self.pro_recovery, self.pro_complete],
+            self.pro_complete: [],
         }
 
     def pro_launch(self, this, **kwargs):
         logging.info("We are go for launch", extra={"proclet": self})
         self.results = {}
+        self.roster = {}
         yield from self.channels["uplink"].send(
             sender=self.uid, group=self.group,
             action=this.__name__,
@@ -85,12 +86,13 @@ class Control(Proclet):
         targets = {i.target for i in self.domain} - set(self.results)
 
         try:
-            p = next(i for i in self.domain if not i.duty)
+            p = next(i for i in self.domain if self.roster.get(i) not in targets)
             t = next(iter(targets))
             yield from self.channels["vhf"].send(
                 sender=self.uid, group={p.uid},
                 action=Init.request, context={t},
             )
+            self.roster[p] = t
             vehicle = self.population[t].name.lower()
             logging.info(f"Team {p.uid.hex[:3]} briefed for recovery of {vehicle}", extra={"proclet": self})
         except StopIteration:
@@ -127,6 +129,7 @@ class Recovery(Proclet):
         }
 
     def pro_tasking(self, this, **kwargs):
+        logging.info(f"Waiting", extra={"proclet": self})
         try:
             self.duty = list(
                 self.channels["vhf"].respond(

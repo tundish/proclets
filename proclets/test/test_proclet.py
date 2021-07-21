@@ -35,28 +35,29 @@ class MarkingTests(unittest.TestCase):
                 self.pro_two: [self.pro_four],
                 self.pro_three: [self.pro_five],
                 self.pro_four: [self.pro_four, self.pro_five],
-                self.pro_five: [],
+                self.pro_five: [self.pro_one],
             }
 
         def pro_one(self, this, **kwargs):
-            print("one")
+            # print("one")
             yield
 
         def pro_two(self, this, **kwargs):
-            print("two")
+            # print("two")
             yield
 
         def pro_three(self, this, **kwargs):
-            print("three")
+            # print("three")
             yield
 
         def pro_four(self, this, **kwargs):
-            print("four")
+            # print("four")
             yield
 
         def pro_five(self, this, **kwargs):
-            print("five")
-            raise Termination()
+            # print("five")
+            if self.tally[this.__name__] > 1:
+                raise Termination()
             yield
 
     def test_fork(self):
@@ -91,9 +92,12 @@ class MarkingTests(unittest.TestCase):
 
     def test_loop(self):
         p = MarkingTests.Parallel.create()
-        a = next((k for k, v in p.arcs.items() if len(set(v)) != len(v)), None)
+        self.assertEqual({0}, p.o_nodes[p.pro_five])
+
+        a = next(k for k, v in p.arcs.items() if v[0] == v[1])
         self.assertNotIn(a, p.i_nodes[p.pro_four])
         self.assertNotIn(a, p.o_nodes[p.pro_four])
+
 
 class ProcletTests(unittest.TestCase):
 
