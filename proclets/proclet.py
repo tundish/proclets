@@ -20,6 +20,7 @@ from collections import Counter
 from collections import defaultdict
 import functools
 import uuid
+import warnings
 import weakref
 
 
@@ -207,6 +208,9 @@ class Proclet:
         for p, (s, d) in self.arcs.items():
             if None not in (s, d) and ordinals[s] >= ordinals[d]:
                 # An arc back to a previous transition does not create a place
-                p = ordinals[d] and sorted(self.i_nodes[s])[0]
+                try:
+                    p = ordinals[d] and sorted(self.i_nodes[s])[0]
+                except IndexError:
+                    warnings.warn(f"Missing an arc to {self.__class__.__name__}.{s.__name__}")
             rv[s].add(p)
         return rv

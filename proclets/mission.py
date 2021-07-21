@@ -33,9 +33,9 @@ class Control(Proclet):
     def net(self):
         return {
             self.pro_launch: [self.pro_separation],
-            self.pro_separation: [self.pro_reentry, self.pro_recovery],
-            self.pro_reentry: [self.pro_reentry, self.pro_complete],
-            self.pro_recovery: [self.pro_recovery, self.pro_complete],
+            self.pro_separation: [self.pro_reentry],
+            self.pro_reentry: [self.pro_recovery, self.pro_reentry],
+            self.pro_recovery: [self.pro_complete, self.pro_recovery],
             self.pro_complete: [],
         }
 

@@ -18,6 +18,7 @@
 
 import itertools
 import unittest
+import sys
 
 from proclets.mission import Control
 from proclets.mission import Recovery
@@ -48,6 +49,9 @@ class MissionTests(unittest.TestCase):
                 for m in p():
                     yield n, p, m
                     n += 1
+            except Exception as e:
+                #print(n, m, p, file=sys.stderr)
+                raise
             except Termination:
                 break
 
