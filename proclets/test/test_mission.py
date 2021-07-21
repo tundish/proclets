@@ -49,11 +49,11 @@ class MissionTests(unittest.TestCase):
                 for m in p():
                     yield n, p, m
                     n += 1
+            except Termination:
+                break
             except Exception as e:
                 #print(n, m, p, file=sys.stderr)
                 raise
-            except Termination:
-                break
 
     def test_flow(self):
         for n, p, m in self.run_to_terminate(self.procs):

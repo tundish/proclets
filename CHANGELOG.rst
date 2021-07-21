@@ -6,6 +6,12 @@
 Change Log
 ::::::::::
 
+0.11.0
+======
+
+* Better implementation of arc cycles.
+* NB: The mission example can get stuck sometimes. Needs some work.
+
 0.10.0
 ======
 

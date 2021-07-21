@@ -95,7 +95,7 @@ Back at Mission Control, the looped transitions monitor the radio for news. Thes
 they are messages whose significance depend on Performative action.
 
 .. literalinclude:: ../mission.py
-   :lines: 88-92
+   :lines: 104-108
 
 Finishing
 ---------
@@ -104,7 +104,7 @@ Mission Control has a cardinality constraint. It launched one Vehicle, but it ex
 When this is detected, it halts the run by raising an exception:
 
 .. literalinclude:: ../mission.py
-   :lines: 84-86
+   :lines: 110-112
 
 Running
 ~~~~~~~

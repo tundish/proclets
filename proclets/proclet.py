@@ -146,7 +146,10 @@ class Proclet:
         self.domain = []
 
     def __call__(self, **kwargs):
-        for proc in self.domain:
+        for n, proc in sorted(
+            ((len(p.tally), p) for p in self.domain),
+            key=operator.itemgetter(0)
+        ):
             yield from proc(**kwargs)
 
         n = 1
@@ -183,9 +186,9 @@ class Proclet:
 
         """
         return [i for k, i in sorted(
-            (self.tally[i.__name__], i)
-            for i in self.net if self.i_nodes[i].issubset(self.marking)
-        )]
+            ((self.tally[i.__name__], i)
+            for i in self.net if self.i_nodes[i].issubset(self.marking)),
+            key=operator.itemgetter(0))]
 
     @functools.cached_property
     def i_nodes(self):
