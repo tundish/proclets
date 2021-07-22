@@ -168,13 +168,15 @@ class Channel:
         """
         Scan the entire Channel for messages sent and received by the Proclet with `uid`.
 
-        Returns a dictionary whose keys are the `connect` ids for the messages, and whose values
-        are the corresponding messages in the order they were generated.
+        Returns an iterator over sequences of messages sharing common `connect`
+        ids. The items in each sequence are the connected messages in the order
+        they were generated.
 
         """
         msgs = sorted(itertools.chain.from_iterable(self.store.values()), key=operator.attrgetter("ts"))
         rv = defaultdict(list)
         for m in msgs:
-            rv[m.connect].append(m)
+            if m.sender == uid or uid in m.group:
+                rv[m.connect].append(m)
         return rv.values()
 

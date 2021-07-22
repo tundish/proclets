@@ -6,6 +6,11 @@
 Change Log
 ::::::::::
 
+0.12.0
+======
+
+* Fixed behaviour and documentation for `Channel.view`.
+
 0.11.0
 ======
 

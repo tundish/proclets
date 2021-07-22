@@ -105,6 +105,7 @@ class ChannelTests(unittest.TestCase):
         c = Channel()
         p = SN(uid=uuid.uuid4())
         q = SN(uid=uuid.uuid4())
+        r = SN(uid=uuid.uuid4())
         init = None
 
         for n, a in zip(range(8), itertools.cycle(
@@ -113,6 +114,7 @@ class ChannelTests(unittest.TestCase):
             with self.subTest(n=n, a=a):
                 if a == Init.request:
                     init = next(c.send(sender=q.uid, group={p.uid}, action=a))
+                    lost = next(c.send(sender=q.uid, group={r.uid}, action=a))
                 elif a == Init.promise:
                     rv = list(c.respond(p, actions={Init.request: a}))
                     self.assertEqual(2, len(rv))
@@ -128,6 +130,9 @@ class ChannelTests(unittest.TestCase):
                     self.assertEqual(init.connect, rv.connect)
 
                 v = list(c.view(p.uid))
+                self.assertFalse(
+                    any(m for i in v for m in i if r.uid in m.group)
+                )
                 if n == 2:
                     self.assertEqual(1, len(v))
                     self.assertEqual(3, len(v[0]))
