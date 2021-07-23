@@ -6,6 +6,11 @@
 Change Log
 ::::::::::
 
+0.13.0
+======
+
+* `Proclet` now supports explicit priority.
+
 0.12.0
 ======
 
