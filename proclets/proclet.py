@@ -151,12 +151,13 @@ class Proclet:
         self.domain = []
 
     def __call__(self, **kwargs):
-        procs = sorted(
-            ((p.priority if p.priority is not None else len(p.tally), p)
-             for p in [self] + self.domain),
-            key=operator.itemgetter(0)
-        )
-        for priority, p in procs:
+        procs = [
+            (p.priority if p.priority is not None else len(p.tally), p)
+            for p in [self] + self.domain
+        ]
+        while procs:
+            procs.sort(key=operator.itemgetter(0))
+            priority, p = procs.pop(0)
             if p is not self:
                 yield from p(**kwargs)
             else:
@@ -171,11 +172,12 @@ class Proclet:
                             n = self.slate[fn] = 0
                         elif isinstance(obj, Proclet):
                             # Transition spawns a new Proclet
-                            yield obj
                             if obj not in self.domain:
                                 self.domain.append(obj)
-                        else:
-                            yield obj
+                                procs.append(
+                                    (obj.priority if obj.priority is not None else len(obj.tally), obj)
+                                )
+                        yield obj
                     self.slate[fn.__name__] += n
                     self.tally[fn.__name__] += 1
 
