@@ -129,7 +129,7 @@ class ChannelTests(unittest.TestCase):
                     self.assertEqual({q.uid}, rv.group)
                     self.assertEqual(init.connect, rv.connect)
 
-                v = list(c.view(p.uid))
+                v = list(c.view(p.uid).values())
                 self.assertFalse(
                     any(m for i in v for m in i if r.uid in m.group)
                 )

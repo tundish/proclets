@@ -168,7 +168,7 @@ class Channel:
         """
         Scan the entire Channel for messages sent and received by the Proclet with `uid`.
 
-        Returns an iterator over sequences of messages sharing common `connect`
+        Returns an dictionary containing sequences of messages having the same `connect`
         ids. The items in each sequence are the connected messages in the order
         they were generated.
 
@@ -178,5 +178,5 @@ class Channel:
         for m in msgs:
             if m.sender == uid or uid in m.group:
                 rv[m.connect].append(m)
-        return rv.values()
+        return rv
 

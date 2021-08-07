@@ -6,6 +6,11 @@
 Change Log
 ::::::::::
 
+0.14.0
+======
+
+* `Channel.view` now returns a dictionary.
+
 0.13.0
 ======
 
