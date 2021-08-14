@@ -135,6 +135,7 @@ class Channel:
     def respond(
         self, p: Proclet, party=None,
         actions: dict=None, contents: dict=None, context: set=None,
+        senders: set=None
         ) -> Performative:
         """
         Process undelivered messages for `p` as a batch.
@@ -143,9 +144,11 @@ class Channel:
         :param actions:     Maps incoming message actions to a corresponding action in the generated reply.
         :param contents:    Maps incoming message actions to corresponding content in the generated reply.
         :param context:     If supplied, add extra context to the reply.
+        :param senders:     If supplied, only reply to the senders specified.
         :type actions:      dict
         :type contents:     dict
         :type context:      set
+        :type senders:      set
 
         """
         while not self.empty(p.uid, party):
@@ -154,15 +157,14 @@ class Channel:
             action = actions and actions.get(m.action)
             content = contents and contents.get(m.action)
             context = m.context and m.context.copy().union(context or set())
-            if action is not None:
+            senders = senders or {m.sender}
+            if action is not None and m.sender in senders:
                 yield from self.send(
                     sender=p.uid, group={m.sender},
                     action=action, content=content,
                     connect=m.connect or m.uid,
                     context=context
                 )
-            elif m.action in actions:
-                yield None
 
     def view(self, uid: uuid.UUID):
         """

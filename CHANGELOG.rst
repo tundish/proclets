@@ -6,6 +6,11 @@
 Change Log
 ::::::::::
 
+0.15.0
+======
+
+* `Channel.respond` now has a parameter for `senders`.
+
 0.14.0
 ======
 
