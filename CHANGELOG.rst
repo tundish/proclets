@@ -6,6 +6,11 @@
 Change Log
 ::::::::::
 
+0.16.0
+======
+
+* `Proclet` objects now keep a `trace` of function events.
+
 0.15.0
 ======
 

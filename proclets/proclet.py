@@ -18,6 +18,7 @@
 
 from collections import Counter
 from collections import defaultdict
+from collections import deque
 import functools
 import operator
 import uuid
@@ -104,6 +105,7 @@ class Proclet:
                         You can initialise that via this parameter.
         :param tally:   The instance attribute `tally` stores the number of times a transition has been enabled.
                         You can initialise that via this parameter.
+        :param trace:   This sequence stores the names of transitions fired, most recent first.
         :param priority:    A numerical value for relative priority of execution.
                             Smaller values have higher priority.
 
@@ -114,6 +116,7 @@ class Proclet:
         :type marking: set
         :type slate: Counter
         :type tally: Counter
+        :type trace: deque
         :type priority: int
 
         """
@@ -137,7 +140,8 @@ class Proclet:
     def __init__(
         self, *args,
         uid=None, name=None, channels=None, group=None,
-        marking=None, slate=None, tally=None, priority=None
+        marking=None, slate=None, tally=None, trace=None,
+        priority=None
     ):
         self.uid = uid or uuid.uuid4()
         self.name = name or self.uid
@@ -146,6 +150,7 @@ class Proclet:
         self.marking = marking or {0}
         self.slate = slate or Counter()
         self.tally = tally or Counter()
+        self.trace = trace or deque()
         self.priority = priority
         self.arcs = dict(self.build_arcs(self.net))
         self.domain = []
@@ -165,11 +170,13 @@ class Proclet:
                 for fn in self.enabled:
                     events = fn(fn, **kwargs) or []
                     for obj in events:
+                        self.trace.appendleft(fn.__name__)
+
                         if obj is None:
                             # Transition is complete
                             self.marking -= self.i_nodes[fn]
                             self.marking.update(self.o_nodes[fn])
-                            n = self.slate[fn] = 0
+                            n = self.slate[fn.__name__] = 0
                         elif isinstance(obj, Proclet):
                             # Transition spawns a new Proclet
                             if obj not in self.domain:
@@ -177,7 +184,9 @@ class Proclet:
                                 procs.append(
                                     (obj.priority if obj.priority is not None else len(obj.tally), obj)
                                 )
+
                         yield obj
+
                     self.slate[fn.__name__] += n
                     self.tally[fn.__name__] += 1
 
