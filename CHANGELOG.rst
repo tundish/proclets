@@ -6,6 +6,11 @@
 Change Log
 ::::::::::
 
+0.18.0
+======
+
+* Restore missing test module.
+
 0.17.0
 ======
 
