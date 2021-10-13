@@ -19,14 +19,10 @@
 from collections import Counter
 from collections import defaultdict
 from collections import deque
-from dataclasses import dataclass
-from dataclasses import field
-import enum
 import functools
 import itertools
 import operator
 import queue
-import time
 import uuid
 
 from proclets.proclet import Proclet
@@ -136,7 +132,7 @@ class Channel:
         self, p: Proclet, party=None,
         actions: dict=None, contents: dict=None, context: set=None,
         senders: set=None
-        ) -> Performative:
+    ) -> Performative:
         """
         Process undelivered messages for `p` as a batch.
         Yields each generated reply as a Performative_.

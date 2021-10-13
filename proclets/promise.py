@@ -20,19 +20,14 @@ from collections import ChainMap
 from collections import Counter
 from collections import defaultdict
 from collections import deque
-from collections import namedtuple
-import enum
 import functools
 import logging
-import random
-import sys
-import uuid
 
-from proclets.channel import Channel
 from proclets.proclet import Proclet
+from proclets.types import Attribution
 from proclets.types import Init
 from proclets.types import Exit
-from proclets.types import Termination
+from proclets.types import Fruition
 
 
 class Promise(Proclet):
@@ -85,7 +80,6 @@ class Promise(Proclet):
                 yield m
 
         if all(i == Fruition.construction for i in self.fruition.values()):
-            self.log.debug(self.requests, extra={"proclet": self})
             yield
 
     def pro_exit(self, this, **kwargs):
@@ -97,5 +91,4 @@ class Promise(Proclet):
                 self.fruition[j] = self.fruition[j].trigger(r.action)
                 yield r
 
-        self.log.debug(self.fruition, extra={"proclet": self})
         yield

@@ -6,6 +6,12 @@
 Change Log
 ::::::::::
 
+0.17.0
+======
+
+* Add `Promise` module and tests.
+* Add tea brewing example.
+
 0.16.0
 ======
 
