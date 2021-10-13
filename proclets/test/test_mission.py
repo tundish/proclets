@@ -27,6 +27,7 @@ from proclets.mission import mission
 from proclets.types import Termination
 
 
+@unittest.skip("Replacing with Tea")
 class MissionTests(unittest.TestCase):
 
     def setUp(self):

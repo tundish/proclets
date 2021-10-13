@@ -23,6 +23,66 @@ import enum
 import time
 import uuid
 
+
+class Attribution(dict):
+
+    def __init__(self, *args, uid=None, ts=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.uid = uid
+        self.ts = ts
+
+
+class Fruition(enum.Enum):
+    """
+    Terry Winograd, Fernando Flores, Craig Larman
+
+    """
+    inception = 1
+    elaboration = 2
+    construction = 3
+    transition = 4
+    completion = 5
+    discussion = 6
+    defaulted = 7
+    withdrawn = 8
+    cancelled = 9
+
+    def trigger(self, event=None):
+        if self.value == 1:
+            return {
+                Init.request: Fruition.elaboration
+            }.get(event, self)
+        elif self.value == 2:
+            return {
+                Init.promise: Fruition.construction,
+                Init.counter: Fruition.discussion,
+                Init.abandon: Fruition.withdrawn,
+                Init.decline: Fruition.withdrawn,
+            }.get(event, self)
+        elif self.value == 3:
+            return {
+                Exit.abandon: Fruition.cancelled,
+                Exit.deliver: Fruition.transition,
+                Exit.decline: Fruition.defaulted,
+            }.get(event, self)
+        elif self.value == 4:
+            return {
+                Exit.abandon: Fruition.cancelled,
+                Exit.decline: Fruition.construction,
+                Exit.confirm: Fruition.completion,
+            }.get(event, self)
+        elif self.value == 6:
+            return {
+                Init.promise: Fruition.construction,
+                Init.confirm: Fruition.construction,
+                Init.counter: Fruition.elaboration,
+                Init.abandon: Fruition.withdrawn,
+                Init.decline: Fruition.withdrawn,
+            }.get(event, self)
+        else:
+            return self
+
+
 class FlowException(Exception): pass
 class Restitution(FlowException): pass
 class Termination(FlowException): pass
